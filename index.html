@@ -443,15 +443,30 @@ async function syncFromFirebase(){
 }
 
 /* ---------- Realtime-подписки ---------- */
+let _syncTimeout = null;
 function startRealtimeSync(){
   if(!_fbReady)return;
   ensureFirebaseAuth().then(()=>{
-    const bind=(node,lsKey,transform)=>{
+    const bind=(node,lsKey)=>{
       fdb.ref(node).on('value',s=>{
         const v=s.val();
         const arr=v?Object.values(v):[];
         lsSet(lsKey,arr);
-        if(window._onRealtimeUpdate)window._onRealtimeUpdate(node);
+        
+        // АВТООБНОВЛЕНИЕ ИНТЕРФЕЙСА
+        // Используем таймаут, чтобы не перегружать браузер при массовых изменениях
+        if(_syncTimeout)clearTimeout(_syncTimeout);
+        _syncTimeout=setTimeout(()=>{
+          // Если мы на главной, личной или карте — перерисовываем
+          const {path}=parseHash();
+          if(['index','personal','card'].includes(path)){
+            // Проверяем, что не открыто модальное окно (чтобы не сбить ввод)
+            const openModal = document.querySelector('.modal-overlay.open');
+            if(!openModal){
+              routes[path]();
+            }
+          }
+        }, 500);
       });
     };
     bind('users',LS.users);
@@ -931,7 +946,8 @@ async function executeApprovedOperation(req){
     const id=uid();
     const full={id,userId,userName,requestId,ts,...op};
     const ops=getOps();ops.push(full);saveOps(ops);
-    if(_fbReady)await fbSet('operations/'+id,full);
+    // Отправляем в фон, не ждем ответа, чтобы окно закрывалось мгновенно
+    if(_fbReady)fbSet('operations/'+id,full).catch(console.error);
     return full;
   };
 
@@ -1816,11 +1832,10 @@ async function renderIndex(){
       const users = getUsers();
       const user = users.find(x => x.id === userId);
       if(user) {
-        user.status = 'active';
-        saveUsers(users);
-        if(_fbReady) await fbUpdate('users/'+userId, {status: 'active'});
-        toast('Пользователь одобрен.', 'ok');
-        renderAll();
+       user.status = 'active';
+       saveUsers(users);
+       if(_fbReady) await fbUpdate('users/'+userId, {status: 'active'});
+       toast('Пользователь одобрен.', 'ok');
       }
     }));
     
