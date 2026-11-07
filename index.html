@@ -1494,15 +1494,26 @@ async function renderLogin(params){
   });
 }
 
-  const tp=document.getElementById('toPinFromFull');
-  if(tp)tp.addEventListener('click',showPinUI);
+    // Безопасное подключение кнопок PIN-экрана
+  const tfp = document.getElementById('toFullFromPin');
+  if (tfp) tfp.addEventListener('click', showFullUI);
 
-  document.getElementById('authTabs').addEventListener('click',e=>{
-    const b=e.target.closest('button');if(!b)return;
-    document.querySelectorAll('#authTabs button').forEach(x=>x.classList.toggle('active',x===b));
-    document.getElementById('loginForm').style.display=b.dataset.tab==='login'?'block':'none';
-    document.getElementById('regForm').style.display=b.dataset.tab==='register'?'block':'none';
-  });
+  const tp = document.getElementById('toPinFromFull');
+  if (tp) tp.addEventListener('click', showPinUI);
+
+  // Безопасное подключение вкладок
+  const tabsEl = document.getElementById('authTabs');
+  if (tabsEl) {
+    tabsEl.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      document.querySelectorAll('#authTabs button').forEach(x => x.classList.toggle('active', x === b));
+      const loginF = document.getElementById('loginForm');
+      const regF = document.getElementById('regForm');
+      if (loginF) loginF.style.display = b.dataset.tab === 'login' ? 'block' : 'none';
+      if (regF) regF.style.display = b.dataset.tab === 'register' ? 'block' : 'none';
+    });
+  }
 
   document.getElementById('loginForm').addEventListener('submit',async e=>{
     e.preventDefault();
