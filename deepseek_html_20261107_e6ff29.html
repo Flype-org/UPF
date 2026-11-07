@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Главная — Семейная касса УПФ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="burger" aria-label="Меню"><span></span></button>
+    <h1>Семейная касса УПФ (УралПромФонд)</h1>
+    <div class="user-chip" id="userChip"></div>
+  </header>
+
+  <div class="drawer-overlay"></div>
+  <aside class="drawer">
+    <div class="drawer-head">
+      <div class="brand">Семейная касса УПФ<small>УралПромФонд</small></div>
+    </div>
+    <nav>
+      <a href="index.html" data-page="index"><span class="ico">🏠</span> Главная</a>
+      <a href="personal.html" data-page="personal"><span class="ico">👤</span> Личный счёт</a>
+      <a href="card.html" data-page="card"><span class="ico">💳</span> Карта</a>
+      <a href="account.html" data-page="account"><span class="ico">⚙️</span> Аккаунт</a>
+    </nav>
+    <div class="drawer-foot">
+      <a href="#" data-logout class="logout"><span class="ico">🚪</span> Выйти</a>
+    </div>
+  </aside>
+
+  <main class="page">
+    <h2 class="page-title">Главная</h2>
+
+    <!-- Общая казна -->
+    <div class="treasury-wrap">
+      <div class="treasury">
+        <div class="label">Общая казна</div>
+        <div class="amount" id="treasuryAmount">0 ₽</div>
+        <div class="sub" id="treasurySub">Семейный фонд</div>
+      </div>
+    </div>
+
+    <!-- Круги членов семьи -->
+    <h3 class="section-title">Участники кассы</h3>
+    <div class="members-grid" id="membersGrid"></div>
+
+    <!-- История общих операций -->
+    <h3 class="section-title">История общих операций</h3>
+    <div class="table-wrap card" style="padding:0">
+      <table class="tbl" id="opsTable">
+        <thead>
+          <tr>
+            <th>Дата</th><th>Участник</th><th>Операция</th><th>Сумма</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty-note" id="opsEmpty" style="display:none">Пока нет операций</div>
+    </div>
+  </main>
+
+  <footer class="disclaimer">
+    Это учётная система для семьи. Не является банком и не оказывает банковские услуги.
+  </footer>
+
+  <!-- ===== Модальное окно: карточка участника ===== -->
+  <div class="modal-overlay" id="memberModal">
+    <div class="modal">
+      <button class="close-x" onclick="closeModal('memberModal')">✕</button>
+      <h3 id="mmTitle">Участник</h3>
+      <div id="mmBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== Модальное окно: взнос в казну ===== -->
+  <div class="modal-overlay" id="contribModal">
+    <div class="modal">
+      <button class="close-x" onclick="closeModal('contribModal')">✕</button>
+      <h3>Внести в казну</h3>
+      <div class="field">
+        <label>Сумма (от 100 до 5000 ₽)</label>
+        <input type="number" id="contribAmount" min="100" max="5000" step="1" placeholder="Например, 500">
+        <div class="hint">Пополните общую казну семьи.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn green" onclick="doContribute()">Внести</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Модальное окно: заём ===== -->
+  <div class="modal-overlay" id="loanModal">
+    <div class="modal">
+      <button class="close-x" onclick="closeModal('loanModal')">✕</button>
+      <h3>Взять заём</h3>
+      <div class="field">
+        <label>Сумма займа</label>
+        <input type="number" id="loanAmount" min="1" step="1" placeholder="Сумма">
+        <div class="hint" id="loanHint"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="doTakeLoan()">Взять</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Модальное окно: возврат займа ===== -->
+  <div class="modal-overlay" id="returnModal">
+    <div class="modal">
+      <button class="close-x" onclick="closeModal('returnModal')">✕</button>
+      <h3>Вернуть заём</h3>
+      <div id="returnInfo" style="margin-bottom:14px"></div>
+      <div class="btn-row">
+        <button class="btn green" id="btnReturnLoan" onclick="doReturnLoan()">Вернуть полностью</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+  /* ============================================================
+     Главная страница: казна, участники, операции
+     ============================================================ */
+  const sess = requireAuth();
+  if (!sess) throw new Error('нет сессии');
+  const me = sess.user;
+
+  // шапка: аватарка и имя
+  (function renderUserChip() {
+    const chip = document.getElementById('userChip');
+    if (me.avatar) {
+      chip.innerHTML = `<img src="${me.avatar}" alt=""> <span>${esc(me.lastname || me.fio)}</span>`;
+    } else {
+      chip.innerHTML = `<span>${esc(me.lastname || me.fio)}</span>`;
+    }
+  })();
+
+  initDrawer('index');
+  startIdleTimer();
+
+  /* --- Отрисовка казны --- */
+  function renderTreasury() {
+    const bal = getTreasuryBalance();
+    document.getElementById('treasuryAmount').textContent = fmtMoney(bal);
+    const membersCount = getUsers().filter(isApproved).length;
+    document.getElementById('treasurySub').textContent = `Участников: ${membersCount}`;
+  }
+
+  /* --- Отрисовка участников --- */
+  function renderMembers() {
+    const grid = document.getElementById('membersGrid');
+    const users = getUsers().filter(isApproved);
+    grid.innerHTML = '';
+
+    users.forEach((u, idx) => {
+      const contributed = getUserContributed(u.id);
+      const loan = getActiveLoan(u.id);
+      const el = document.createElement('div');
+      el.className = 'member-circle';
+      el.style.animationDelay = (idx * 0.06) + 's';
+
+      let debtHtml = '<div class="mdebt none">без долга</div>';
+      if (loan) {
+        const total = loan.amount + Math.round(loan.amount * loan.percent / 100);
+        debtHtml = `<div class="mdebt">долг ${fmtMoney(total)}</div>`;
+      }
+
+      const avaInner = u.avatar
+        ? `<img src="${u.avatar}" alt="">`
+        : esc(initials(u.fio));
+
+      el.innerHTML = `
+        <div class="ava">${avaInner}</div>
+        <div class="mname">${esc(u.name || u.lastname || u.email)}</div>
+        <div class="mcontrib">${fmtMoney(contributed)}</div>
+        ${debtHtml}
+      `;
+      el.addEventListener('click', () => openMemberCard(u.id));
+      grid.appendChild(el);
+    });
+  }
+
+  /* --- Карточка участника --- */
+  function openMemberCard(userId) {
+    const u = getUserById(userId);
+    if (!u) return;
+    const contributed = getUserContributed(u.id);
+    const loan = getActiveLoan(u.id);
+    const isMe = u.id === me.id;
+
+    let loanHtml = '<p class="text-muted">Активного займа нет.</p>';
+    if (loan) {
+      const total = loan.amount + Math.round(loan.amount * loan.percent / 100);
+      const overdue = new Date(loan.dueDate) < new Date();
+      loanHtml = `
+        <div class="card" style="box-shadow:none;background:#f7fbff;padding:14px;margin-top:8px">
+          <div><b>Сумма займа:</b> ${fmtMoney(loan.amount)}</div>
+          <div><b>Процент:</b> ${loan.percent}%</div>
+          <div><b>К возврату:</b> ${fmtMoney(total)}</div>
+          <div><b>Срок возврата:</b> ${fmtDate(loan.dueDate)}
+            ${overdue ? '<span class="badge red" style="margin-left:6px">просрочен</span>' : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('mmTitle').textContent = u.fio;
+    const body = document.getElementById('mmBody');
+    body.innerHTML = `
+      <div style="margin-bottom:10px">
+        <span class="badge blue">вклад: ${fmtMoney(contributed)}</span>
+        ${loan ? `<span class="badge red" style="margin-left:6px">долг</span>` : `<span class="badge green" style="margin-left:6px">без долга</span>`}
+      </div>
+      <h4 style="margin:14px 0 6px">Активный заём</h4>
+      ${loanHtml}
+    `;
+
+    // Кнопки для владельца (только свои действия)
+    if (isMe) {
+      const btnRow = document.createElement('div');
+      btnRow.className = 'btn-row';
+
+      const bContribute = document.createElement('button');
+      bContribute.className = 'btn green small';
+      bContribute.textContent = 'Внести в казну';
+      bContribute.addEventListener('click', () => {
+        closeModal('memberModal');
+        document.getElementById('contribAmount').value = '';
+        openModal('contribModal');
+      });
+      btnRow.appendChild(bContribute);
+
+      if (!loan) {
+        const bLoan = document.createElement('button');
+        bLoan.className = 'btn small';
+        bLoan.textContent = 'Взять заём';
+        bLoan.addEventListener('click', () => {
+          closeModal('memberModal');
+          const maxLoan = getTreasuryBalance();
+          document.getElementById('loanHint').textContent =
+            `Доступно в казне: ${fmtMoney(maxLoan)}. Процент: ${LOAN_PERCENT}%, срок: ${LOAN_TERM_DAYS} дней.`;
+          document.getElementById('loanAmount').value = '';
+          openModal('loanModal');
+        });
+        btnRow.appendChild(bLoan);
+      } else {
+        const bReturn = document.createElement('button');
+        bReturn.className = 'btn small red';
+        bReturn.textContent = 'Вернуть заём';
+        bReturn.addEventListener('click', () => {
+          closeModal('memberModal');
+          openReturnModal(loan);
+        });
+        btnRow.appendChild(bReturn);
+      }
+      body.appendChild(btnRow);
+    }
+
+    openModal('memberModal');
+  }
+
+  /* --- Взнос в казну --- */
+  function doContribute() {
+    const val = Number(document.getElementById('contribAmount').value);
+    if (!isFinite(val) || val < 100 || val > 5000) {
+      toast('Сумма должна быть от 100 до 5000 ₽.', 'err');
+      return;
+    }
+    addOperation({
+      type: 'contribute',
+      userId: me.id,
+      userName: me.fio,
+      amount: val,
+      comment: 'Взнос в общую казну'
+    });
+    closeModal('contribModal');
+    toast('Внесено ' + fmtMoney(val) + ' в казну.', 'ok');
+    renderAll();
+  }
+
+  /* --- Взять заём --- */
+  function doTakeLoan() {
+    const val = Number(document.getElementById('loanAmount').value);
+    const treasury = getTreasuryBalance();
+    if (!isFinite(val) || val <= 0) { toast('Некорректная сумма.', 'err'); return; }
+    if (val > treasury) { toast('Нельзя занять больше, чем в казне (' + fmtMoney(treasury) + ').', 'err'); return; }
+    if (getActiveLoan(me.id)) { toast('У вас уже есть активный заём.', 'err'); return; }
+
+    const due = new Date();
+    due.setDate(due.getDate() + LOAN_TERM_DAYS);
+
+    const loans = getLoans();
+    loans.push({
+      id: uid(),
+      userId: me.id,
+      userName: me.fio,
+      amount: val,
+      percent: LOAN_PERCENT,
+      takenAt: nowISO(),
+      dueDate: due.toISOString(),
+      status: 'active'
+    });
+    saveLoans(loans);
+
+    addOperation({
+      type: 'loan_out',
+      userId: me.id,
+      userName: me.fio,
+      amount: val,
+      comment: 'Выдан заём из казны'
+    });
+
+    closeModal('loanModal');
+    toast('Заём на ' + fmtMoney(val) + ' выдан. Вернуть до ' + fmtDate(due.toISOString()) + '.', 'ok');
+    renderAll();
+  }
+
+  /* --- Возврат займа --- */
+  let currentLoanForReturn = null;
+  function openReturnModal(loan) {
+    currentLoanForReturn = loan;
+    const total = loan.amount + Math.round(loan.amount * loan.percent / 100);
+    document.getElementById('returnInfo').innerHTML =
+      `Сумма к возврату: <b>${fmtMoney(total)}</b><br>
+       <span class="text-muted">(заём ${fmtMoney(loan.amount)} + ${loan.percent}%)</span>`;
+    openModal('returnModal');
+  }
+  function doReturnLoan() {
+    if (!currentLoanForReturn) return;
+    const loan = currentLoanForReturn;
+    const total = loan.amount + Math.round(loan.amount * loan.percent / 100);
+
+    // закрываем заём
+    const loans = getLoans();
+    const l = loans.find(x => x.id === loan.id);
+    if (l) { l.status = 'returned'; l.returnedAt = nowISO(); }
+    saveLoans(loans);
+
+    addOperation({
+      type: 'loan_return',
+      userId: me.id,
+      userName: me.fio,
+      amount: total,
+      comment: 'Возврат займа с процентом'
+    });
+
+    currentLoanForReturn = null;
+    closeModal('returnModal');
+    toast('Заём возвращён. В казну поступило ' + fmtMoney(total) + '.', 'ok');
+    renderAll();
+  }
+
+  /* --- История операций --- */
+  function renderOps() {
+    const tbody = document.querySelector('#opsTable tbody');
+    const ops = getOperations().slice().reverse();
+    tbody.innerHTML = '';
+    if (!ops.length) {
+      document.getElementById('opsEmpty').style.display = 'block';
+      document.getElementById('opsTable').style.display = 'none';
+      return;
+    }
+    document.getElementById('opsEmpty').style.display = 'none';
+    document.getElementById('opsTable').style.display = 'table';
+
+    const typeLabels = {
+      contribute: 'Взнос в казну',
+      loan_out: 'Выдача займа',
+      loan_return: 'Возврат займа',
+      personal_to_treasury: 'Перевод с личного счёта',
+      personal_deposit: 'Пополнение личного счёта',
+      personal_withdraw: 'Снятие с личного счёта'
+    };
+
+    ops.forEach(op => {
+      // показываем только общие операции (в казну / займы)
+      if (!['contribute', 'loan_out', 'loan_return', 'personal_to_treasury'].includes(op.type)) return;
+      const tr = document.createElement('tr');
+      const sign = (op.type === 'contribute' || op.type === 'loan_return' || op.type === 'personal_to_treasury') ? '+' : '−';
+      const cls = sign === '+' ? 'amt-in' : 'amt-out';
+      tr.innerHTML = `
+        <td>${fmtDateTime(op.ts)}</td>
+        <td>${esc(op.userName || '')}</td>
+        <td>${typeLabels[op.type] || op.type}</td>
+        <td class="${cls}">${sign} ${fmtMoney(op.amount)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderAll() {
+    renderTreasury();
+    renderMembers();
+    renderOps();
+  }
+  renderAll();
+  </script>
+</body>
+</html>
