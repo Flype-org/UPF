@@ -14,52 +14,72 @@
 
 <style>
 /* ============================================================
-   Семейная касса УПФ — Дизайн в стиле Сбера
+   ТЕМЫ И ПЕРЕМЕННЫЕ
    ============================================================ */
-:root{
+:root {
   --sber-green: #21A038;
-  --sber-green-dark: #1b852e;
+  --sber-green-light: #2ecc71;
   --sber-green-bg: #e5f5e9;
-  --sber-black: #1a1a1a;
-  --sber-gray: #7a7a7a;
-  --sber-bg: #f2f3f5;
+  --sber-blue: #1a73e8;
+  --sber-gradient: linear-gradient(135deg, #21A038 0%, #1a73e8 100%);
+  --sber-gradient-hover: linear-gradient(135deg, #1b852e 0%, #1557b0 100%);
+  
+  --bg: #f2f3f5;
   --card-bg: #ffffff;
-  --red: #ff3b30;
-  --radius: 20px;
-  --radius-sm: 12px;
+  --text-main: #1a1a1a;
+  --text-muted: #7a7a7a;
+  --border: #e5e6e8;
+  --input-bg: #f2f3f5;
   --shadow: 0 4px 20px rgba(0,0,0,0.04);
   --shadow-hover: 0 8px 24px rgba(0,0,0,0.08);
+  
+  --red: #ff3b30;
+  --red-bg: #fff5f5;
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+
+[data-theme="dark"] {
+  --bg: #0f0f11;
+  --card-bg: #1c1c1e;
+  --text-main: #ffffff;
+  --text-muted: #8e8e93;
+  --border: #2c2c2e;
+  --input-bg: #2c2c2e;
+  --shadow: 0 4px 20px rgba(0,0,0,0.4);
+  --shadow-hover: 0 8px 24px rgba(0,0,0,0.6);
+  --sber-green-bg: #1c3b24;
+  --red-bg: #3b1c1c;
 }
 
 *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-html,body{margin:0;padding:0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;background:var(--sber-bg);color:var(--sber-black);-webkit-font-smoothing:antialiased;min-height:100%}
-body{display:flex;flex-direction:column;min-height:100vh; padding-bottom: 70px;} /* Место под нижнее меню */
-a{color:var(--sber-green);text-decoration:none}
+html,body{margin:0;padding:0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;background:var(--bg);color:var(--text-main);-webkit-font-smoothing:antialiased;min-height:100%;transition: background .3s, color .3s;}
+body{display:flex;flex-direction:column;min-height:100vh; padding-bottom: 70px;}
+a{color:var(--sber-green);text-decoration:none;}
 
-/* --- Шапка (как в приложении) --- */
+/* --- Шапка --- */
 header.topbar{
-  background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px;
-  position: sticky; top: 0; z-index: 50;
+  background: var(--card-bg); padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border);
 }
 header.topbar h1{font-size:16px;margin:0;font-weight:600;letter-spacing:0;flex:1;}
-.burger{display:none;} /* Скрываем бутерброд, используем нижнее меню */
-
-/* Аватарка в шапке */
-.user-chip{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;}
-.user-chip img{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--sber-bg);}
-
-/* --- Боковое меню (для ПК, как на 1 скрине) --- */
-.drawer-overlay{display:none !important;}
-.drawer{
-  display: none; /* На мобильных скрыто */
+@media (min-width: 900px) {
+  header.topbar { display: none; } /* На ПК убираем шапку */
 }
 
-/* --- Основной контент --- */
-main.page{flex:1;width:100%;max-width:1200px;margin:0 auto;padding:16px;animation:fadeUp .4s ease both}
+.user-chip{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;}
+.user-chip img{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--bg);}
+
+/* --- Меню (ПК) --- */
+.drawer-overlay{display:none !important;}
+.drawer{display: none;}
+
+/* --- Контент --- */
+main.page{flex:1;width:100%;max-width:1200px;margin:0 auto;padding:16px;animation:fadeUp .4s ease both;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 
-/* --- Карточки (стиль Сбера) --- */
+/* --- Карточки --- */
 .card{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;border:none;}
 .card+.card{margin-top:12px;}
 
@@ -69,31 +89,33 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   padding:12px 20px;border:none;border-radius:12px;font-size:15px;font-weight:600;
-  cursor:pointer;background:var(--sber-green);color:#fff;
-  transition:transform .1s, background .2s; font-family:inherit;
+  cursor:pointer;background:var(--sber-gradient);color:#fff;
+  transition:transform .1s, box-shadow .2s; font-family:inherit;
+  box-shadow: 0 4px 12px rgba(33, 160, 56, 0.2);
 }
-.btn:hover{background:var(--sber-green-dark);}
+.btn:hover{background:var(--sber-gradient-hover); box-shadow: 0 6px 16px rgba(33, 160, 56, 0.3);}
 .btn:active{transform:scale(.97);}
-.btn:disabled{opacity:.5;cursor:not-allowed;}
-.btn.ghost{background:var(--sber-bg);color:var(--sber-black);}
-.btn.ghost:hover{background:#e5e6e8;}
-.btn.red{background:#fff;color:var(--red);border:1px solid #ffd6d6;}
-.btn.red:hover{background:#fff5f5;}
+.btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+.btn.ghost{background:var(--input-bg);color:var(--text-main);box-shadow:none;}
+.btn.ghost:hover{background:var(--border);}
+.btn.red{background:var(--red-bg);color:var(--red);box-shadow:none;}
+.btn.red:hover{background:#ffd6d6; color:#d32f2f;}
+[data-theme="dark"] .btn.red:hover{background:#5a2020;}
 .btn.small{padding:8px 14px;font-size:13px;border-radius:8px;}
 .btn.block{width:100%;}
 .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;}
 
-/* --- Поля ввода (стиль Сбера) --- */
+/* --- Поля ввода --- */
 .field{margin-bottom:16px;}
-.field label{display:block;font-size:13px;color:var(--sber-gray);margin-bottom:6px;font-weight:500;}
+.field label{display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px;font-weight:500;}
 .field input,.field select{
   width:100%;padding:14px 16px;border:none;border-radius:12px;font-size:16px;
-  font-family:inherit;color:var(--sber-black);background:var(--sber-bg);
+  font-family:inherit;color:var(--text-main);background:var(--input-bg);
   transition:background .2s, box-shadow .2s;outline:none;
 }
-.field input:focus,.field select:focus{background:#fff;box-shadow:0 0 0 2px var(--sber-green);}
+.field input:focus,.field select:focus{background:var(--card-bg);box-shadow:0 0 0 2px var(--sber-green);}
 .field.error input{box-shadow:0 0 0 2px var(--red);}
-.field .hint{font-size:12px;color:var(--sber-gray);margin-top:6px;}
+.field .hint{font-size:12px;color:var(--text-muted);margin-top:6px;}
 .field .err-msg{color:var(--red);font-size:12px;margin-top:4px;display:none;}
 .field.error .err-msg{display:block;}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -101,36 +123,36 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 
 /* --- Тосты --- */
 .toast-wrap{position:fixed;top:16px;right:16px;left:16px;z-index:400;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;}
-.toast{background:var(--sber-black);color:#fff;padding:12px 20px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.2);font-size:14px;font-weight:500;max-width:400px;text-align:center;animation:toastIn .3s ease both;pointer-events:auto;}
-.toast.err{background:var(--red);}
+.toast{background:var(--text-main);color:var(--card-bg);padding:12px 20px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.15);font-size:14px;font-weight:500;max-width:400px;text-align:center;animation:toastIn .3s ease both;pointer-events:auto;}
+.toast.err{background:var(--red);color:#fff;}
 .toast.out{animation:toastOut .3s ease both;}
 @keyframes toastIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-20px)}}
 
-/* --- Модальные окна (Центрирование) --- */
+/* --- Модальные окна --- */
 .modal-overlay{
   position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh;
-  background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center;
   padding:16px; z-index:300; opacity:0; pointer-events:none; transition:opacity .2s; overflow:hidden;
 }
 .modal-overlay.open{opacity:1;pointer-events:auto;}
 .modal{
-  background:#fff; border-radius:24px; width:100%; max-width:440px;
-  max-height:90vh; overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.15);
+  background:var(--card-bg); border-radius:24px; width:100%; max-width:440px;
+  max-height:90vh; overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.2);
   transform:translateY(20px) scale(.95); transition:transform .3s cubic-bezier(.34,1.56,.64,1);
   padding:24px; margin:auto;
 }
 .modal-overlay.open .modal{transform:translateY(0) scale(1);}
 .modal h3{margin:0 0 16px;font-size:20px;font-weight:700;}
-.modal .close-x{float:right;background:var(--sber-bg);border:none;color:var(--sber-black);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .2s;}
-.modal .close-x:hover{background:#e5e6e8;}
+.modal .close-x{float:right;background:var(--input-bg);border:none;color:var(--text-main);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+.modal .close-x:hover{background:var(--border);}
 
-/* --- Главная: Общая казна --- */
+/* --- Главная: Общая казна (Скриншот 2) --- */
 .treasury-wrap{display:flex;flex-direction:column;align-items:center;gap:24px;margin-bottom:16px;}
 .treasury{
-  width:100%; max-width: 400px; background: var(--sber-green); color: #fff;
-  border-radius: 24px; padding: 30px 24px; display:flex; flex-direction:column; align-items:flex-start;
-  box-shadow: 0 12px 30px rgba(33, 160, 56, 0.25);
+  width:100%; max-width: 500px; background: var(--sber-gradient); color: #fff;
+  border-radius: 24px; padding: 24px; display:flex; flex-direction:column; align-items:flex-start;
+  box-shadow: 0 12px 30px rgba(26, 115, 232, 0.25);
   position:relative; overflow:hidden; animation: popIn .4s ease both;
 }
 @keyframes popIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
@@ -138,89 +160,106 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .treasury .amount{font-size:36px; font-weight:700; margin:8px 0 4px; letter-spacing:-1px;}
 .treasury .sub{font-size:13px; opacity:.8;}
 
-/* --- Участники --- */
-.members-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:12px;width:100%;}
+/* --- Участники (Скриншот 2) --- */
+.members-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;width:100%;}
 .member-circle{
-  background:#fff; border-radius:var(--radius); padding:16px; display:flex; flex-direction:column;
+  background:var(--card-bg); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column;
   align-items:flex-start; box-shadow:var(--shadow); cursor:pointer; transition:transform .1s, box-shadow .2s; border: none;
 }
 .member-circle:hover{transform:translateY(-2px); box-shadow:var(--shadow-hover);}
 .member-circle:active{transform:scale(.97);}
-.member-circle .ava{width:48px;height:48px;border-radius:50%;margin-bottom:12px;background:var(--sber-bg);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px;color:var(--sber-black);overflow:hidden;}
+.member-circle .ava{width:48px;height:48px;border-radius:50%;margin-bottom:12px;background:var(--input-bg);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px;color:var(--text-main);overflow:hidden;}
 .member-circle .ava img{width:100%;height:100%;object-fit:cover;}
 .member-circle .mname{font-size:15px; font-weight:600; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;}
-.member-circle .mcontrib{font-size:13px; color:var(--sber-gray); margin-bottom:8px;}
-.member-circle .mdebt{font-size:12px; color:var(--red); font-weight:600; background:#fff5f5; padding:4px 8px; border-radius:8px;}
+.member-circle .mcontrib{font-size:13px; color:var(--text-muted); margin-bottom:8px;}
+.member-circle .mdebt{font-size:12px; color:var(--red); font-weight:600; background:var(--red-bg); padding:4px 8px; border-radius:8px;}
 .member-circle .mdebt.none{color:var(--sber-green); background:var(--sber-green-bg);}
 
 /* --- Таблицы --- */
-.table-wrap{overflow-x:auto; border-radius:var(--radius); background:#fff; box-shadow:var(--shadow); padding:0;}
+.table-wrap{overflow-x:auto; border-radius:var(--radius); background:var(--card-bg); box-shadow:var(--shadow); padding:0;}
 table.tbl{width:100%;border-collapse:collapse;font-size:14px;}
-table.tbl th,table.tbl td{padding:16px;text-align:left;border-bottom:1px solid var(--sber-bg);white-space:nowrap;}
-table.tbl th{color:var(--sber-gray);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:0;}
+table.tbl th,table.tbl td{padding:16px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.tbl th{color:var(--text-muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:0;}
 table.tbl tr:last-child td{border-bottom:none;}
-table.tbl tbody tr:hover{background:#fafafa;}
+table.tbl tbody tr:hover{background:var(--input-bg);}
 .amt-in{color:var(--sber-green);font-weight:600;}
-.amt-out{color:var(--sber-black);font-weight:600;}
-.empty-note{color:var(--sber-gray);font-size:14px;padding:24px;text-align:center;}
+.amt-out{color:var(--text-main);font-weight:600;}
+.empty-note{color:var(--text-muted);font-size:14px;padding:24px;text-align:center;}
 
 /* --- Бейджи --- */
 .badge{display:inline-block;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;}
-.badge.green{background:var(--sber-green-bg);color:var(--sber-green-dark);}
-.badge.red{background:#fff5f5;color:var(--red);}
+.badge.green{background:var(--sber-green-bg);color:var(--sber-green);}
+.badge.red{background:var(--red-bg);color:var(--red);}
 .badge.blue{background:#eef2ff;color:#4f46e5;}
-.badge.gray{background:var(--sber-bg);color:var(--sber-gray);}
+.badge.gray{background:var(--input-bg);color:var(--text-muted);}
 
-/* --- Экран входа (Дизайн 2) --- */
-.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:#fff;}
-@media(min-width:768px){.auth-screen{background:var(--sber-bg);}}
+/* --- Экран входа (Фото 4) --- */
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg);}
 .auth-box{
-  background:#fff; border-radius:24px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+  background:var(--card-bg); border-radius:32px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
   width:100%; max-width:400px; padding:32px 24px; animation:fadeUp .4s ease both;
+  border: 1px solid var(--border);
 }
-@media(min-width:768px){.auth-box{border-radius:32px; padding:40px;}}
-.auth-brand{text-align:center;margin-bottom:24px;}
-.auth-brand .logo{width:52px;height:52px;border-radius:50%;margin:0 auto 16px;background:var(--sber-green);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;}
-.auth-brand h1{font-size:22px;margin:0 0 8px;font-weight:700;}
-.auth-brand p{font-size:14px;color:var(--sber-gray);margin:0;}
-.auth-tabs{display:flex;background:var(--sber-bg);border-radius:12px;padding:4px;margin-bottom:24px;}
-.auth-tabs button{flex:1;border:none;background:transparent;padding:10px;border-radius:8px;font-size:14px;font-weight:600;color:var(--sber-gray);cursor:pointer;transition:all .2s;}
-.auth-tabs button.active{background:#fff;color:var(--sber-black);box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.auth-brand{text-align:center;margin-bottom:32px;}
+.auth-brand .logo{font-size:24px; font-weight:800; color:var(--sber-green); margin-bottom:16px;}
+.auth-brand h1{font-size:20px;margin:0 0 8px;font-weight:700;}
+.auth-tabs{display:flex;background:var(--input-bg);border-radius:12px;padding:4px;margin-bottom:24px;}
+.auth-tabs button{flex:1;border:none;background:transparent;padding:10px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .2s;}
+.auth-tabs button.active{background:var(--card-bg);color:var(--text-main);box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.quick-login-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 24px; }
+.quick-login-btn { background: var(--input-bg); border: none; border-radius: 12px; padding: 16px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; cursor: pointer; transition: background .2s; text-align: left; }
+.quick-login-btn:hover { background: var(--border); }
+.quick-login-btn .icon { font-size: 20px; }
+.quick-login-btn .text { font-size: 13px; font-weight: 500; line-height: 1.2; color: var(--text-main); }
 
-/* --- PIN-экран (Как на 2 скрине) --- */
+/* --- PIN-экран (Фото 5) --- */
 #pinScreen {
   position: fixed; inset: 0; z-index: 999;
-  background: linear-gradient(135deg, #0f3b22 0%, #1e6e3a 50%, #2b8c4a 100%);
+  background: linear-gradient(135deg, #0b2e16 0%, #185c2d 50%, #278d46 100%);
   display: flex; flex-direction: column;
-  color: #fff; padding: 40px 24px;
+  color: #fff; padding: 40px 24px 24px;
   animation: fadeIn .3s ease;
 }
+@media (min-width: 900px) {
+  #pinScreen { align-items: center; }
+  .pin-content-wrapper { width: 100%; max-width: 400px; display: flex; flex-direction: column; height: 100%; }
+}
 .pin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-.pin-header .logo-small { width: 44px; height: 44px; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-.pin-header .switch-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .2s; }
-.pin-header .switch-btn:hover { background: rgba(255,255,255,0.2); }
-.pin-greeting { font-size: 28px; font-weight: 700; line-height: 1.3; margin-bottom: 40px; }
+.pin-header .logo-small { width: 40px; height: 40px; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; }
+.pin-header .switch-btn { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .2s; }
+.pin-header .switch-btn:hover { background: rgba(255,255,255,0.1); }
+.pin-greeting { font-size: 28px; font-weight: 600; line-height: 1.3; margin-bottom: 40px; }
 .pin-label { font-size: 15px; opacity: 0.8; margin-bottom: 16px; }
-.pin-dots { display: flex; gap: 12px; margin-bottom: 40px; }
-.pin-dots .dot { width: 44px; height: 56px; border-radius: 8px; background: rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; }
-.pin-dots .dot.filled { background: #fff; }
+.pin-dots { display: flex; gap: 8px; margin-bottom: 40px; }
+.pin-dots .dot { width: 44px; height: 52px; border-radius: 8px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.1); }
+.pin-dots .dot.filled { background: #fff; border-color: #fff; }
 .pin-dots.shake { animation: shake .4s; }
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
 
-.pin-pad { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 400px; margin-left: auto; margin-right: auto; width: 100%; }
-.pin-pad button { height: 64px; border: none; border-radius: 16px; background: rgba(255,255,255,0.85); color: #000; font-size: 24px; font-weight: 600; cursor: pointer; transition: background .1s, transform .1s; }
+.pin-pad { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; }
+.pin-pad button { height: 64px; border: none; border-radius: 12px; background: rgba(255,255,255,0.85); color: #000; font-size: 24px; font-weight: 500; cursor: pointer; transition: background .1s, transform .1s; }
 .pin-pad button:active { transform: scale(.95); background: #fff; }
-.pin-pad button.fn { font-size: 15px; color: #fff; background: transparent; border: 1px solid rgba(255,255,255,0.3); }
-.pin-pad button.fn:hover { background: rgba(255,255,255,0.1); }
-.pin-pad button.fn.del { border: none; background: transparent; font-size: 20px; }
+.pin-pad button.fn { font-size: 13px; color: #fff; background: transparent; border: none; display: flex; align-items: center; justify-content: center; }
+.pin-pad button.fn:hover { background: rgba(255,255,255,0.1); border-radius: 12px; }
+.pin-pad button.fn.del { font-size: 20px; }
 .pin-locked { background: rgba(255,0,0,0.2); border: 1px solid rgba(255,0,0,0.4); padding: 16px; border-radius: 12px; text-align: center; font-size: 14px; margin-bottom: 20px; }
 
 /* --- Аккаунт --- */
 .avatar-edit{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
-.avatar-preview{width:80px;height:80px;border-radius:50%;background:var(--sber-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:28px;font-weight:600;color:var(--sber-gray);flex-shrink:0;}
+.avatar-preview{width:80px;height:80px;border-radius:50%;background:var(--input-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:28px;font-weight:600;color:var(--text-muted);flex-shrink:0;}
 .avatar-preview img{width:100%;height:100%;object-fit:cover;}
 
-/* --- Карта (Удостоверение) --- */
+/* Тумблер темы */
+.theme-toggle { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.theme-toggle span { font-weight: 500; font-size: 15px; }
+.switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--input-bg); transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: var(--sber-green); }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* --- Карта --- */
 .bank-card{
   width: 100%; max-width: 420px; aspect-ratio: 1.586 / 1; border-radius: 20px;
   background: #000; color: #fff; padding: 24px; display: flex; gap: 20px;
@@ -254,61 +293,53 @@ table.tbl tbody tr:hover{background:#fafafa;}
 .loading-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;}
 
 /* --- Подвал --- */
-footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(--sber-gray);margin-top:auto; background: transparent;}
+footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(--text-muted);margin-top:auto; background: transparent;}
 
-/* --- НИЖНЕЕ МЕНЮ (Мобильная навигация) --- */
+/* --- НИЖНЕЕ МЕНЮ (Мобильная навигация) (Фото 3) --- */
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
-  background: #fff; display: flex; justify-content: space-around; align-items: center;
-  box-shadow: 0 -2px 15px rgba(0,0,0,0.05); z-index: 100;
+  position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+  background: var(--card-bg); display: flex; justify-content: space-around; align-items: center;
+  border-top: 1px solid var(--border); z-index: 100;
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bottom-nav a {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  color: var(--sber-gray); font-size: 11px; font-weight: 500; text-decoration: none;
-  transition: color .2s;
+  color: var(--text-muted); font-size: 10px; font-weight: 500; text-decoration: none;
+  transition: color .2s; cursor: pointer;
 }
 .bottom-nav a.active { color: var(--sber-green); }
 .bottom-nav a .ico { font-size: 22px; margin-bottom: 2px; }
 .bottom-nav .logout-btn { color: var(--red); }
 
-/* --- Адаптив для ПК (Скриншот 1) --- */
+/* --- Адаптив для ПК (Фото 6) --- */
 @media (min-width: 900px) {
-  body { padding-bottom: 0; padding-left: 280px; background: var(--sber-bg); }
+  body { padding-bottom: 0; padding-left: 260px; }
   .bottom-nav { display: none; }
-  .burger { display: none; }
-  
-  header.topbar { 
-    background: transparent; padding: 24px 32px; 
-    border-bottom: none; 
-  }
-  header.topbar h1 { font-size: 20px; font-weight: 700; }
   
   .drawer {
-    display: flex; position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
-    background: var(--sber-bg); flex-direction: column; padding: 24px 16px;
-    border-right: none; z-index: 100; transform: none !important;
+    display: flex; position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
+    background: var(--bg); flex-direction: column; padding: 24px 16px;
+    border-right: 1px solid var(--border); z-index: 100; transform: none !important;
   }
-  .drawer-head { padding: 0 12px 24px; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 16px;}
-  .drawer-head .brand { font-size: 18px; font-weight: 700; }
+  .drawer-head { padding: 0 12px 24px; margin-bottom: 16px;}
+  .drawer-head .brand { font-size: 16px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;}
   
   .drawer nav { flex: 1; }
   .drawer nav a {
     display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px;
-    color: var(--sber-black); font-weight: 500; font-size: 15px; margin-bottom: 4px;
-    transition: background .2s;
+    color: var(--text-main); font-weight: 500; font-size: 15px; margin-bottom: 4px;
+    transition: background .2s; cursor: pointer;
   }
-  .drawer nav a:hover { background: #fff; }
-  .drawer nav a.active { background: #fff; color: var(--sber-green); font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-  .drawer-foot { border-top: 1px solid rgba(0,0,0,0.05); padding-top: 16px; }
-  .drawer-foot a { color: var(--red); display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-weight: 500; }
+  .drawer nav a:hover { background: var(--input-bg); }
+  .drawer nav a.active { background: var(--card-bg); color: var(--sber-green); font-weight: 600; box-shadow: var(--shadow); }
+  .drawer-foot { border-top: 1px solid var(--border); padding-top: 16px; }
+  .drawer-foot a { color: var(--red); display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-weight: 500; cursor: pointer;}
   
-  main.page { padding: 0 32px 32px; }
+  main.page { padding: 32px; max-width: 1000px; margin: 0 auto; }
   
-  /* Сетка для главной */
   .treasury-wrap { flex-direction: row; align-items: stretch; gap: 20px; }
-  .treasury { flex: 1; max-width: none; border-radius: 24px; }
-  .members-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .treasury { flex: 1; max-width: none; border-radius: 24px; padding: 32px;}
+  .members-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 }
 </style>
 </head>
@@ -1284,27 +1315,41 @@ function shell(activePage,bodyHTML){
 }
 
 function bindShell(activePage){
-  const burger=document.getElementById('burgerBtn');
   const drawer=document.getElementById('drawer');
-  const overlay=document.getElementById('drawerOverlay');
-  if(!burger||!drawer||!overlay)return;
-  const open=()=>{drawer.classList.add('open');overlay.classList.add('open')};
-  const close=()=>{drawer.classList.remove('open');overlay.classList.remove('open')};
-  burger.addEventListener('click',open);
-  overlay.addEventListener('click',close);
-  drawer.querySelectorAll('[data-nav]').forEach(a=>{
-    if(a.dataset.nav===activePage)a.classList.add('active');
-    a.addEventListener('click',e=>{e.preventDefault();close();navigate(a.dataset.nav)});
-  });
-  const lo=drawer.querySelector('[data-logout]');
-  if(lo)lo.addEventListener('click',async e=>{
-    e.preventDefault();
-    const mySess=ssGet(SS.adminSessionId,null);
-    if(mySess)await releaseAdminSession(mySess);
-    ssDel(SS.adminSessionId);
-    clearSession();
-    navigate('login',{reason:'logout'});
-  });
+  const bottomNav=document.querySelector('.bottom-nav');
+  
+  const handleNav = (a) => {
+    if(a.dataset.nav === activePage) a.classList.add('active');
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      navigate(a.dataset.nav);
+    });
+  };
+
+  const handleLogout = (a) => {
+    a.addEventListener('click', async e => {
+      e.preventDefault();
+      const mySess=ssGet(SS.adminSessionId,null);
+      if(mySess) await releaseAdminSession(mySess);
+      ssDel(SS.adminSessionId);
+      clearSession();
+      navigate('login',{reason:'logout'});
+    });
+  };
+
+  // Инициализация меню для ПК
+  if(drawer){
+    drawer.querySelectorAll('[data-nav]').forEach(handleNav);
+    const lo = drawer.querySelector('[data-logout]');
+    if(lo) handleLogout(lo);
+  }
+  
+  // Инициализация нижнего меню для телефонов
+  if(bottomNav){
+    bottomNav.querySelectorAll('[data-nav]').forEach(handleNav);
+    const lo = bottomNav.querySelector('[data-logout]');
+    if(lo) handleLogout(lo);
+  }
 }
 
 /* ============================================================
@@ -2297,9 +2342,29 @@ async function renderCard(){
 async function renderAccount(){
   const sess=getSession();if(!sess)return;
   let me=sess.user;
+    // Инициализация темы
+  const savedTheme = localStorage.getItem('upf_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
 
   document.getElementById('app').innerHTML=shell('account',`
     <h2 class="page-title">Аккаунт</h2>
+        <div class="card" style="margin-bottom: 16px;">
+      <div class="theme-toggle" style="border:none; margin:0; padding:0;">
+        <span>Тёмная тема</span>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle" ${savedTheme === 'dark' ? 'checked' : ''}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+      const toggle = document.getElementById('themeToggle');
+  if(toggle){
+    toggle.addEventListener('change', (e) => {
+      const theme = e.target.checked ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('upf_theme', theme);
+    });
+  }
     <div class="card">
       <div class="avatar-edit">
         <div class="avatar-preview" id="avatarPreview"></div>
