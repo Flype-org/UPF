@@ -71,12 +71,15 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
   display:inline-flex;align-items:center;justify-content:center;
   padding:14px 24px;border:none;border-radius:12px;font-size:15px;font-weight:600;
   cursor:pointer;color:#fff; font-family:inherit; transition:transform .1s, opacity .2s, box-shadow .2s;
-  background: linear-gradient(90deg, #0b2e16 0%, #21A038 100%);
+  background: var(--sber-green); /* ТОЛЬКО ЗЕЛЕНЫЙ */
   box-shadow: 0 4px 12px rgba(33, 160, 56, 0.2);
 }
 .btn:hover{opacity:0.9; box-shadow: 0 6px 16px rgba(33, 160, 56, 0.3);}
 .btn:active{transform:scale(.96);}
 .btn:disabled{opacity:.5;cursor:not-allowed; box-shadow:none;}
+
+.btn.neutral { background: var(--input-bg); color: var(--text-main); box-shadow: none; border: 1px solid var(--border); }
+.btn.neutral:hover { background: var(--border); }
 .btn.ghost{background:var(--input-bg);color:var(--text-main); box-shadow:none;}
 .btn.red{background:var(--red); box-shadow:0 4px 12px rgba(255,59,48,0.2);}
 .btn.small{padding:8px 14px;font-size:13px;border-radius:8px;}
@@ -97,16 +100,32 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 
 .toast-wrap{position:fixed;top:16px;right:16px;left:16px;z-index:400;display:flex;flex-direction:column;align-items:center;pointer-events:none;}
 .toast{background:var(--text-main);color:var(--card-bg);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;animation:fadeIn .3s;}
-.modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:16px; z-index:300; opacity:0; pointer-events:none; transition:opacity .2s;}
-.modal-overlay.open{opacity:1;pointer-events:auto;}
-.modal{background:var(--card-bg); border-radius:24px; width:100%; max-width:440px; max-height:90vh; overflow-y:auto; padding:24px; transform:translateY(20px); transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
-.modal-overlay.open .modal{transform:translateY(0);}
+
+/* --- МОДАЛЬНЫЕ ОКНА (ИСПРАВЛЕНО ДЛЯ МОБИЛЬНЫХ) --- */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: -webkit-fill-available;
+  background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center;
+  padding: 16px; z-index: 300; opacity: 0; pointer-events: none; transition: opacity .2s; overscroll-behavior: contain;
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--card-bg); border-radius: 24px; width: 100%; max-width: 440px; max-height: 85vh;
+  overflow-y: auto; padding: 24px; transform: translateY(20px); transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  margin: auto; -webkit-overflow-scrolling: touch;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
 .modal h3{margin:0 0 16px;font-size:20px;font-weight:700;}
 .modal .close-x{float:right;background:var(--input-bg);border:none;color:var(--text-main);width:32px;height:32px;border-radius:50%;cursor:pointer; transition:transform .1s;}
 .modal .close-x:active{transform:scale(0.9);}
 
 .treasury-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:16px;}
-.treasury{width:100%; max-width: 500px; color: #fff; border-radius: 24px; padding: 24px; display:flex; flex-direction:column; align-items:flex-start; box-shadow: 0 12px 30px rgba(33, 160, 56, 0.25); background: linear-gradient(90deg, #0b2e16 0%, #146626 50%, #21A038 100%); animation: popIn 0.4s ease both;}
+.treasury{
+  width:100%; max-width: 500px; color: #fff; border-radius: 24px; padding: 24px; 
+  display:flex; flex-direction:column; align-items:flex-start; 
+  box-shadow: 0 12px 30px rgba(33, 160, 56, 0.25);
+  background: var(--sber-green);
+  animation: popIn 0.4s ease both;
+}
 .treasury .label{font-size:14px; opacity:.9;}
 .treasury .amount{font-size:36px; font-weight:700; margin:8px 0;}
 .treasury .sub{font-size:13px; opacity:.8;}
@@ -146,7 +165,7 @@ table.tbl th{color:var(--text-muted);font-size:12px;text-transform:uppercase;}
 .auth-tabs button { flex: 1; border: none; background: transparent; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: background 0.2s; }
 .auth-tabs button.active { background: var(--card-bg); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,.05); }
 
-#pinScreen { position: fixed; inset: 0; z-index: 999; background: linear-gradient(135deg, #0b2e16 0%, #146626 50%, #21A038 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; padding: 24px; animation: fadeIn 0.3s ease;}
+#pinScreen { position: fixed; inset: 0; z-index: 999; background: var(--sber-green); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; padding: 24px; animation: fadeIn 0.3s ease;}
 .pin-content { width: 100%; max-width: 360px; display: flex; flex-direction: column; animation: slideUp 0.4s ease both;}
 .pin-top { margin-bottom: 40px; text-align: center; }
 .pin-top .ava-small { width: 72px; height: 72px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 26px; color: #0b2e16; margin: 0 auto 16px; overflow: hidden; }
@@ -154,7 +173,7 @@ table.tbl th{color:var(--text-muted);font-size:12px;text-transform:uppercase;}
 .pin-top .uname { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
 .pin-top .uhint { font-size: 14px; opacity: 0.7; margin-bottom: 24px; }
 .pin-dots { display: flex; justify-content: center; gap: 12px; }
-.pin-dots .dot { width: 48px; height: 56px; border-radius: 12px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; }
+.pin-dots .dot { width: 48px; height: 56px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
 .pin-dots .dot::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: #fff; opacity: 0; transition: opacity 0.2s; }
 .pin-dots .dot.filled::after { opacity: 1; }
 .pin-dots.shake { animation: shake .4s; }
@@ -419,9 +438,12 @@ function setSession(userId){ ssSet(SS.session,{userId,loginAt:nowISO()}); lsSet(
 function clearSession(){ ssDel(SS.session); }
 
 function toast(msg,type){ const w=document.getElementById('toastWrap'); if(!w)return; const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; w.appendChild(t); setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},3200); }
-function openModal(id){const el=document.getElementById(id);if(!el)return;el.classList.add('open');document.body.style.overflow='hidden'}
-function closeModal(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('open');document.body.style.overflow=''}
-function closeAllModals(){document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));document.body.style.overflow=''}
+
+let scrollPosition = 0;
+function openModal(id){ const el=document.getElementById(id); if(!el)return; scrollPosition=window.pageYOffset; document.body.style.overflow='hidden'; document.body.style.position='fixed'; document.body.style.top=`-${scrollPosition}px`; document.body.style.width='100%'; el.classList.add('open'); }
+function closeModal(id){ const el=document.getElementById(id); if(!el)return; el.classList.remove('open'); document.body.style.overflow=''; document.body.style.position=''; document.body.style.top=''; document.body.style.width=''; window.scrollTo(0,scrollPosition); }
+function closeAllModals(){ document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); document.body.style.overflow=''; document.body.style.position=''; document.body.style.top=''; document.body.style.width=''; window.scrollTo(0,scrollPosition); }
+
 document.addEventListener('click',e=>{if(e.target.classList&&e.target.classList.contains('modal-overlay'))closeAllModals()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllModals()});
 
@@ -459,10 +481,10 @@ function cropAvatar(file,size,cb){ const r=new FileReader(); r.onload=e=>{ const
 function getGreeting(name){ const h=new Date().getHours(); let greet; if(h>=5&&h<12)greet='Доброе утро'; else if(h>=12&&h<18)greet='Добрый день'; else if(h>=18&&h<23)greet='Добрый вечер'; else greet='Доброй ночи'; return greet+', '+name+'!'; }
 function getSeasonImage(){ 
   const m=new Date().getMonth(); 
-  if(m>=2&&m<=4) return 'spring.jpg';
-  if(m>=5&&m<=7) return 'summer.jpg';
-  if(m>=8&&m<=10) return 'autumn.jpg';
-  return 'winter.jpg';
+  if(m>=2&&m<=4) return 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?q=80&w=1920&auto=format&fit=crop';
+  if(m>=5&&m<=7) return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop';
+  if(m>=8&&m<=10) return 'https://images.unsplash.com/photo-1507371341162-763b8f5c6c6e?q=80&w=1920&auto=format&fit=crop';
+  return 'https://images.unsplash.com/photo-1478719059408-592965723cbc?q=80&w=1920&auto=format&fit=crop';
 }
 async function showLoadingScreen(firstName){
   const screen=document.getElementById('loadingScreen'), greeting=document.getElementById('loadingGreeting'), landscape=document.getElementById('loadingLandscape'), ring=document.getElementById('ringFg'), pct=document.getElementById('loadingPct'), sound=document.getElementById('upfSound');
@@ -499,7 +521,7 @@ async function executeApprovedOperation(req){
 
 async function instantAction(type,payload){
   const sess=getSession(); if(!sess)throw new Error('Нет сессии'); const me=sess.user; const ts=nowISO();
-  const pushOp=async(op)=>{ const id=uid(); const full={id,userId:me.id,userName:me.fio,ts,...op}; const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)fbSet('operations/'+id,full).catch(console.error); return full; };
+  const pushOp=async(op)=>{ const id=uid(); const full={id,userId:me.id,userName:me.fio,ts,...op}; const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)await fbSet('operations/'+id,full); return full; };
   
   if(type===REQ_TYPE.PERSONAL_DEPOSIT){
     const amt=Number(payload.amount); if(!isFinite(amt)||amt<=0)throw new Error('Сумма некорректна');
@@ -522,9 +544,11 @@ async function instantAction(type,payload){
     if(getPersonalBalance(me.id)<amt)throw new Error('Недостаточно средств на личном счёте');
     const target=getUserById(targetId); if(!target)throw new Error('Получатель не найден');
     
+    // Списание у отправителя
     await pushOp({type:'transfer_out',amount:amt,comment:`Перевод для ${target.fio}`,targetUserId:target.id});
+    // Зачисление получателю
     const id=uid(); const full={id,userId:target.id,userName:target.fio,ts,type:'transfer_in',amount:amt,comment:`Перевод от ${me.fio}`,targetUserId:me.id};
-    const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)fbSet('operations/'+id,full).catch(console.error);
+    const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)await fbSet('operations/'+id,full);
   }
 }
 
@@ -562,7 +586,7 @@ async function rejectRequest(requestId,commentKey){
 
 async function adminAction(type,payload){
   const sess=getSession(); if(!sess||sess.user.role!=='admin')throw new Error('Только админ'); const admin=sess.user; const ts=nowISO();
-  const pushOp=async(op)=>{ const id=uid(); const full={id,ts,...op}; const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)fbSet('operations/'+id,full).catch(console.error); };
+  const pushOp=async(op)=>{ const id=uid(); const full={id,ts,...op}; const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)await fbSet('operations/'+id,full); };
   switch(type){
     case REQ_TYPE.ADMIN_ADD_TREASURY:{ const amt=Number(payload.amount); if(!isFinite(amt)||amt<=0)throw new Error('Некорректная сумма'); await pushOp({type:'contribute',userId:admin.id,userName:admin.fio,amount:amt,comment:'Админ: пополнение казны',byAdmin:true}); break; }
     case REQ_TYPE.ADMIN_REMOVE_TREASURY:{ const amt=Number(payload.amount); if(!isFinite(amt)||amt<=0)throw new Error('Некорректная сумма'); if(getTreasuryBalance()<amt)throw new Error('Недостаточно средств'); await pushOp({type:'admin_treasury_out',userId:admin.id,userName:admin.fio,amount:amt,comment:'Админ: изъятие из казны',byAdmin:true}); break; }
@@ -807,19 +831,19 @@ async function renderIndex(){
     <div class="card">
       <h4 style="margin-top:0">Технические работы</h4>
       <div class="field"><label>Комментарий</label><input type="text" id="maintComment" placeholder="Скоро вернёмся!"></div>
-      <div class="btn-row"><button class="btn red small" id="btnMaintOn">Включить</button><button class="btn ghost small" id="btnMaintOff">Выключить</button></div>
+      <div class="btn-row"><button class="btn neutral small" id="btnMaintOn">Включить</button><button class="btn ghost small" id="btnMaintOff">Выключить</button></div>
     </div>
     <div class="card">
       <h4 style="margin-top:0">Управление казной</h4>
       <div class="field"><label>Сумма</label><input type="number" id="admTreasAmount" placeholder="Сумма"></div>
-      <div class="btn-row"><button class="btn green small" id="btnAdmAddTreasury">Внести</button><button class="btn red small" id="btnAdmRemoveTreasury">Вынести</button></div>
+      <div class="btn-row"><button class="btn green small" id="btnAdmAddTreasury">Внести</button><button class="btn neutral small" id="btnAdmRemoveTreasury">Вынести</button></div>
     </div>
     <div class="card">
       <h4 style="margin-top:0">Участник</h4>
       <div class="field"><select id="admTargetUser"></select></div>
       <div class="field"><label>Сумма</label><input type="number" id="admUserAmount" placeholder="Сумма"></div>
       <div class="btn-row"><button class="btn ghost small" id="btnAdmAddPersonal">Пополнить личный</button><button class="btn ghost small" id="btnAdmAddDebt">Ввести долг</button><button class="btn ghost small" id="btnAdmCancelDebt">Сбросить долг</button></div>
-      <div class="btn-row"><button class="btn red small" id="btnAdmBlockUser">Блок. аккаунт</button><button class="btn red small" id="btnAdmBlockCard">Блок. карту</button></div>
+      <div class="btn-row"><button class="btn neutral small" id="btnAdmBlockUser">Блок. аккаунт</button><button class="btn neutral small" id="btnAdmBlockCard">Блок. карту</button></div>
     </div>
     `:''}
 
@@ -957,7 +981,7 @@ async function renderCard(){
     <div id="noCard" class="card center" style="display:none"><p>Карты нет.</p><button class="btn" id="btnIssueCard">Оформить</button></div>
     <div id="cardBox" style="display:none">
       <div class="bank-card" id="bankCard"><div class="qr-side" id="qrSide"></div><div class="data-side"><div style="font-size:10px;opacity:.7;">УДОСТОВЕРЕНИЕ</div><div style="font-size:14px;font-weight:600;margin:2px 0 12px;">УПФ · УралПромФонд</div><div class="card-fio" id="cardFio">—</div><div class="card-num" id="cardNum">0000 0000 00</div><div style="font-size:12px;">Код: <b id="cardCode">000</b></div></div></div>
-      <div class="btn-row"><button class="btn red" id="btnBlockCard">Заблокировать</button></div>
+      <div class="btn-row"><button class="btn neutral" id="btnBlockCard">Заблокировать</button></div>
     </div>
     ${me.role==='admin'?`<h3 class="section-title">Отделение</h3><div class="card"><div class="row-2"><div class="field"><label>Номер карты</label><input type="text" id="scanNumber" maxlength="10"></div><div class="field"><label>Код</label><input type="text" id="scanCode" maxlength="3"></div></div><button class="btn" id="btnScanCard">Открыть</button></div>`:''}
     <div class="modal-overlay" id="adminOpsModal"><div class="modal"><button class="close-x" onclick="closeModal('adminOpsModal')">✕</button><h3>Участник</h3><div id="adminOpsBody"></div></div></div>
