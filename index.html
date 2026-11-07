@@ -1302,7 +1302,6 @@ async function renderLogin(params){
 
   document.getElementById('app').innerHTML=`
   <div class="auth-layout">
-    <!-- ЭКРАН PIN-КОДА -->
     <div id="pinScreen" style="display:${showPin?'flex':'none'}; flex-direction:column;">
       <div class="pin-box">
         <div class="pin-top">
@@ -1329,7 +1328,6 @@ async function renderLogin(params){
       <div class="center"><button class="auth-link-btn" id="toFullFromPin">Войти по email и паролю</button></div>
     </div>
 
-    <!-- ЭКРАН ВХОДА (EMAIL) -->
     <div id="fullScreen" style="display:${showPin?'none':'block'};">
       <div class="auth-box">
         <div class="auth-brand">
@@ -1383,37 +1381,56 @@ async function renderLogin(params){
     </div>
   </div>`;
 
-  // --- Логика (остается без изменений, я лишь поправил кнопки) ---
-  const pinScreen=document.getElementById('pinScreen');
-  const fullScreen=document.getElementById('fullScreen');
-  let pinAttempts=ssGet(SS.pinFail,0)||0;
-  let pinBuf='';
+  const pinScreen = document.getElementById('pinScreen');
+  const fullScreen = document.getElementById('fullScreen');
+  let pinAttempts = ssGet(SS.pinFail,0) || 0;
+  let pinBuf = '';
 
   function showPinUI(){
-    pinScreen.style.display='flex'; fullScreen.style.display='none';
+    if(pinScreen) pinScreen.style.display='flex'; 
+    if(fullScreen) fullScreen.style.display='none';
     if(rememberedUser){
-      const ava=document.getElementById('pinAva');
-      if(rememberedUser.avatar)ava.innerHTML=`<img src="${rememberedUser.avatar}" alt="">`;
-      else ava.textContent=initials(rememberedUser.fio);
-      document.getElementById('pinName').textContent=rememberedUser.fio;
+      const ava = document.getElementById('pinAva');
+      if(ava){
+        if(rememberedUser.avatar) ava.innerHTML=`<img src="${rememberedUser.avatar}" alt="">`;
+        else ava.textContent=initials(rememberedUser.fio);
+      }
+      const nm = document.getElementById('pinName');
+      if(nm) nm.textContent=rememberedUser.fio;
     }
     updateDots(); updateLock();
   }
   function showFullUI(){
-    pinScreen.style.display='none'; fullScreen.style.display='block';
+    if(pinScreen) pinScreen.style.display='none'; 
+    if(fullScreen) fullScreen.style.display='block';
     const t=document.getElementById('toPinFromFull');
     if(t)t.style.display=rememberedUser?'inline-block':'none';
   }
-  function updateDots(){document.querySelectorAll('#pinDots .dot').forEach((d,i)=>d.classList.toggle('filled',i<pinBuf.length))}
+  function updateDots(){
+    document.querySelectorAll('#pinDots .dot').forEach((d,i)=>d.classList.toggle('filled',i<pinBuf.length));
+  }
   function updateLock(){
     const locked=pinAttempts>=3;
-    document.getElementById('pinLocked').style.display=locked?'block':'none';
-    document.getElementById('pinPad').style.display=locked?'none':'grid';
+    const pl = document.getElementById('pinLocked');
+    const pp = document.getElementById('pinPad');
+    if(pl) pl.style.display=locked?'block':'none';
+    if(pp) pp.style.display=locked?'none':'grid';
   }
-  function shakeDots(){const d=document.getElementById('pinDots');d.classList.add('shake');setTimeout(()=>d.classList.remove('shake'),450)}
-  function setFieldError(fId,msg){const f=document.getElementById(fId);if(f){f.classList.add('error');const m=f.querySelector('.err-msg');if(m)m.textContent=msg}}
-  function clearErrors(){document.querySelectorAll('.field.error').forEach(f=>f.classList.remove('error'))}
-  function showMsg(elId,text,type){const el=document.getElementById(elId);if(!el)return;el.innerHTML=text?`<div class="badge ${type==='err'?'red':'green'}" style="display:block;margin-bottom:12px;padding:10px;border-radius:8px;text-align:center">${esc(text)}</div>`:'';}
+  function shakeDots(){
+    const d=document.getElementById('pinDots');
+    if(d){ d.classList.add('shake'); setTimeout(()=>d.classList.remove('shake'),450); }
+  }
+  function setFieldError(fId,msg){
+    const f=document.getElementById(fId);
+    if(f){ f.classList.add('error'); const m=f.querySelector('.err-msg'); if(m) m.textContent=msg; }
+  }
+  function clearErrors(){
+    document.querySelectorAll('.field.error').forEach(f=>f.classList.remove('error'));
+  }
+  function showMsg(elId,text,type){
+    const el=document.getElementById(elId);if(!el)return;
+    el.innerHTML=text?`<div class="badge ${type==='err'?'red':'green'}" style="display:block;margin-bottom:12px;padding:10px;border-radius:8px;text-align:center">${esc(text)}</div>`:'';
+  }
 
   async function doLoginSuccess(user){
     setSession(user.id); ssDel(SS.pinFail);
@@ -1428,80 +1445,38 @@ async function renderLogin(params){
 
   if(showPin) showPinUI();
 
-  document.getElementById('pinPad').addEventListener('click',async e=>{
-    const b=e.target.closest('button');if(!b)return;
-    const k=b.dataset.k;
-    if(k==='switch'){showFullUI();return}
-    if(k==='del'){pinBuf=pinBuf.slice(0,-1);updateDots();return}
-    if(pinAttempts>=3)return;
-    if(pinBuf.length>=5)return;
-    pinBuf+=k;updateDots();
-    if(pinBuf.length===5){
-      const pin=pinBuf;
-      if(verifyHash(pin,rememberedUser.pin.salt,rememberedUser.pin.hash)){
-        if(!isApproved(rememberedUser)||rememberedUser.blocked){
-          shakeDots(); showMsg('loginMsg','Доступ запрещён.','err'); pinBuf=''; updateDots(); return;
+  // --- Безопасное подключение всех кнопок ---
+  const pad = document.getElementById('pinPad');
+  if(pad){
+    pad.addEventListener('click', async e=>{
+      const b=e.target.closest('button');if(!b)return;
+      const k=b.dataset.k;
+      if(k==='switch'){showFullUI();return}
+      if(k==='del'){pinBuf=pinBuf.slice(0,-1);updateDots();return}
+      if(pinAttempts>=3)return;
+      if(pinBuf.length>=5)return;
+      pinBuf+=k;updateDots();
+      if(pinBuf.length===5){
+        const pin=pinBuf;
+        if(verifyHash(pin,rememberedUser.pin.salt,rememberedUser.pin.hash)){
+          if(!isApproved(rememberedUser)||rememberedUser.blocked){
+            shakeDots(); showMsg('loginMsg','Доступ запрещён.','err'); pinBuf=''; updateDots(); return;
+          }
+          await doLoginSuccess(rememberedUser);
+        }else{
+          shakeDots(); pinAttempts++; ssSet(SS.pinFail,pinAttempts); pinBuf=''; updateDots(); updateLock();
+          if(pinAttempts>=3)toast('Быстрый вход заблокирован.','err');
         }
-        await doLoginSuccess(rememberedUser);
-      }else{
-        shakeDots(); pinAttempts++; ssSet(SS.pinFail,pinAttempts); pinBuf=''; updateDots(); updateLock();
-        if(pinAttempts>=3)toast('Быстрый вход заблокирован.','err');
       }
-    }
-  });
-
-  const tfp = document.getElementById('toFullFromPin');
-  if (tfp) tfp.addEventListener('click', showFullUI);
-  const tp = document.getElementById('toPinFromFull');
-  if (tp) {
-    tp.addEventListener('click', showPinUI);
+    });
   }
 
-  document.getElementById('authTabs').addEventListener('click',e=>{
-    const b=e.target.closest('button');if(!b)return;
-    document.querySelectorAll('#authTabs button').forEach(x=>x.classList.toggle('active',x===b));
-    document.getElementById('loginForm').style.display=b.dataset.tab==='login'?'block':'none';
-    document.getElementById('regForm').style.display=b.dataset.tab==='register'?'block':'none';
-  });
-
-  document.getElementById('loginForm').addEventListener('submit',async e=>{
-    e.preventDefault(); clearErrors(); showMsg('loginMsg','');
-    const email=document.getElementById('loginEmail').value.trim().toLowerCase();
-    const pass=document.getElementById('loginPass').value;
-    try{await syncFromFirebase()}catch(e){}
-    const u=getUserByEmail(email);
-    if(!u){showMsg('loginMsg','Пользователь не найден.','err');return}
-    if(!verifyHash(pass,u.pass.salt,u.pass.hash)){showMsg('loginMsg','Неверный пароль.','err');return}
-    if(u.blocked){showMsg('loginMsg','Аккаунт заблокирован.','err');return}
-    await doLoginSuccess(u);
-  });
-
-  document.getElementById('regForm').addEventListener('submit',async e=>{
-    e.preventDefault(); clearErrors();
-    const lastname=document.getElementById('regLastname').value.trim();
-    const name=document.getElementById('regName').value.trim();
-    const patronymic=document.getElementById('regPatronymic').value.trim();
-    const email=document.getElementById('regEmail').value.trim().toLowerCase();
-    const pass=document.getElementById('regPass').value;
-    const pin=document.getElementById('regPin').value;
-    if(!lastname||!name||!email||!pass||!pin){showMsg('regMsg','Заполните все поля','err');return}
-    
-    const u={id:uid(), lastname,name,patronymic, fio:`${lastname} ${name} ${patronymic}`, email, pass:makeHash(pass), pin:makeHash(pin), avatar:'', role:'member', status:'pending', blocked:false, createdAt:nowISO()};
-    const users=getUsers(); users.push(u); saveUsers(users);
-    if(_fbReady)await fbSet('users/'+u.id,u);
-    showMsg('regMsg','Заявка отправлена админу','ok');
-    document.getElementById('regForm').reset();
-  });
-}
-
-    // Безопасное подключение кнопок PIN-экрана
   const tfp = document.getElementById('toFullFromPin');
   if (tfp) tfp.addEventListener('click', showFullUI);
 
   const tp = document.getElementById('toPinFromFull');
   if (tp) tp.addEventListener('click', showPinUI);
 
-  // Безопасное подключение вкладок
   const tabsEl = document.getElementById('authTabs');
   if (tabsEl) {
     tabsEl.addEventListener('click', e => {
@@ -1515,83 +1490,41 @@ async function renderLogin(params){
     });
   }
 
-  document.getElementById('loginForm').addEventListener('submit',async e=>{
-    e.preventDefault();
-    clearErrors();showMsg('loginMsg','');
-    const email=document.getElementById('loginEmail').value.trim().toLowerCase();
-    const pass=document.getElementById('loginPass').value;
-    let err=false;
-    if(!email){setFieldError('f-login-email','Введите email.');err=true}
-    else if(!isEmailGmail(email)){setFieldError('f-login-email','Email должен быть @gmail.com.');err=true}
-    if(!pass){setFieldError('f-login-pass','Введите пароль.');err=true}
-    if(err)return;
+  const lf = document.getElementById('loginForm');
+  if(lf){
+    lf.addEventListener('submit', async e=>{
+      e.preventDefault(); clearErrors(); showMsg('loginMsg','');
+      const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+      const pass=document.getElementById('loginPass').value;
+      try{await syncFromFirebase()}catch(e){}
+      const u=getUserByEmail(email);
+      if(!u){showMsg('loginMsg','Пользователь не найден.','err');return}
+      if(!verifyHash(pass,u.pass.salt,u.pass.hash)){showMsg('loginMsg','Неверный пароль.','err');return}
+      if(u.blocked){showMsg('loginMsg','Аккаунт заблокирован.','err');return}
+      await doLoginSuccess(u);
+    });
+  }
 
-    // Пытаемся сначала подтянуть свежие данные из Firebase
-    try{await syncFromFirebase()}catch(e){}
-
-    const u=getUserByEmail(email);
-    if(!u){showMsg('loginMsg','Пользователь с таким email не найден.','err');return}
-    if(!verifyHash(pass,u.pass.salt,u.pass.hash)){showMsg('loginMsg','Неверный пароль.','err');return}
-    if(u.blocked){showMsg('loginMsg','Аккаунт заблокирован администратором.','err');return}
-    if(!isApproved(u)){
-      showMsg('loginMsg',u.status==='pending'?'Ваша заявка ещё на рассмотрении администратором.':'Ваша заявка отклонена.','err');
-      return;
-    }
-    await doLoginSuccess(u);
-  });
-
-  document.getElementById('regForm').addEventListener('submit',async e=>{
-    e.preventDefault();
-    clearErrors();showMsg('regMsg','');
-    const lastname=document.getElementById('regLastname').value.trim();
-    const name=document.getElementById('regName').value.trim();
-    const patronymic=document.getElementById('regPatronymic').value.trim();
-    const email=document.getElementById('regEmail').value.trim().toLowerCase();
-    const pass=document.getElementById('regPass').value;
-    const pass2=document.getElementById('regPass2').value;
-    const pin=document.getElementById('regPin').value;
-    let err=false;
-    if(!lastname){setFieldError('f-reg-lastname','Введите фамилию.');err=true}
-    if(!name){setFieldError('f-reg-name','Введите имя.');err=true}
-    if(!patronymic){setFieldError('f-reg-patronymic','Введите отчество.');err=true}
-    if(!email){setFieldError('f-reg-email','Введите email.');err=true}
-    else if(!isEmailGmail(email)){setFieldError('f-reg-email','Email должен быть @gmail.com.');err=true}
-    else if(getUserByEmail(email)){setFieldError('f-reg-email','Этот email уже занят.');err=true}
-    if(!pass){setFieldError('f-reg-pass','Введите пароль.');err=true}
-    else if(pass.length<6){setFieldError('f-reg-pass','Минимум 6 символов.');err=true}
-    if(!pass2){setFieldError('f-reg-pass2','Повторите пароль.');err=true}
-    else if(pass!==pass2){setFieldError('f-reg-pass2','Пароли не совпадают.');err=true}
-    if(!isPin5(pin)){setFieldError('f-reg-pin','PIN — ровно 5 цифр.');err=true}
-    if(err)return;
-
-    const users=getUsers();
-    const isFirst=users.length===0;
-    const u={
-      id:uid(),lastname,name,patronymic,
-      fio:`${lastname} ${name} ${patronymic}`,
-      email,
-      pass:makeHash(pass),pin:makeHash(pin),
-      avatar:'',
-      role:isFirst?'admin':'member',
-      status:isFirst?'active':'pending',
-      blocked:false,
-      createdAt:nowISO()
-    };
-    users.push(u);saveUsers(users);
-    if(_fbReady)await fbSet('users/'+u.id,u);
-
-    if(isFirst){
-      showMsg('regMsg','Администратор зарегистрирован! Войдите.','ok');
-      setTimeout(()=>{
-        document.querySelector('#authTabs button[data-tab="login"]').click();
-        document.getElementById('loginEmail').value=email;
-        document.getElementById('loginPass').focus();
-      },900);
-    }else{
-      showMsg('regMsg','Заявка отправлена на рассмотрение администратору.','ok');
+  const rf = document.getElementById('regForm');
+  if(rf){
+    rf.addEventListener('submit', async e=>{
+      e.preventDefault(); clearErrors();
+      const lastname=document.getElementById('regLastname').value.trim();
+      const name=document.getElementById('regName').value.trim();
+      const patronymic=document.getElementById('regPatronymic').value.trim();
+      const email=document.getElementById('regEmail').value.trim().toLowerCase();
+      const pass=document.getElementById('regPass').value;
+      const pin=document.getElementById('regPin').value;
+      if(!lastname||!name||!email||!pass||!pin){showMsg('regMsg','Заполните все поля','err');return}
+      
+      const u={id:uid(), lastname,name,patronymic, fio:`${lastname} ${name} ${patronymic}`, email, pass:makeHash(pass), pin:makeHash(pin), avatar:'', role:'member', status:'pending', blocked:false, createdAt:nowISO()};
+      const users=getUsers(); users.push(u); saveUsers(users);
+      if(_fbReady) await fbSet('users/'+u.id,u);
+      showMsg('regMsg','Заявка отправлена админу','ok');
       document.getElementById('regForm').reset();
-    }
-  });
+    });
+  }
+}
 
 /* ============================================================
    ГЛАВНАЯ (с панелью админа)
