@@ -843,7 +843,8 @@ const REQ_LABELS={
   take_loan:'Взятие займа',
   return_loan:'Возврат займа',
   issue_card:'Оформление карты',
-  block_card:'Блокировка карты'
+  block_card:'Блокировка карты',
+  registration: 'Регистрация пользователя'
 };
 
 /* ---------- Создание заявки пользователем ---------- */
@@ -920,7 +921,8 @@ async function rejectRequest(requestId,commentKey){
 
 /* ---------- Исполнение одобренной операции ---------- */
 async function executeApprovedOperation(req){
-  const {type,userId,userName,payload}=req;
+  const {type,userId,userName}=req;
+  const payload = req.payload || {};
   const amt=Number(payload.amount)||0;
   const ts=nowISO();
   const requestId=req.id;
@@ -1761,23 +1763,81 @@ async function renderIndex(){
   function renderAdminReqs(){
     const tbody=document.querySelector('#adminReqsTable tbody');
     if(!tbody)return;
-    const reqs=getRequests().filter(r=>r.status==='pending').reverse();
+    
+    // 1. Обычные заявки на операции
+    let reqs = getRequests().filter(r=>r.status==='pending').reverse();
+    
+    // 2. Заявки на регистрацию (пользователи со статусом pending)
+    const pendingUsers = getUsers().filter(u => u.status === 'pending');
+    
     tbody.innerHTML='';
-    if(!reqs.length){$('adminReqsEmpty').style.display='block';$('adminReqsTable').style.display='none';return}
-    $('adminReqsEmpty').style.display='none';$('adminReqsTable').style.display='table';
+    
+    if(!reqs.length && !pendingUsers.length){
+      $('adminReqsEmpty').style.display='block';
+      $('adminReqsTable').style.display='none';
+      return;
+    }
+    $('adminReqsEmpty').style.display='none';
+    $('adminReqsTable').style.display='table';
+
+    // Рендерим пользователей
+    pendingUsers.forEach(u => {
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${fmtDateTime(u.createdAt)}</td>
+        <td>${esc(u.fio)}</td>
+        <td>Регистрация</td>
+        <td>—</td>
+        <td>
+          <button class="btn green small" data-ap-user="${u.id}">✔</button>
+          <button class="btn red small" data-rj-user="${u.id}" style="margin-left:4px">✖</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+    // Рендерим обычные операции
     reqs.forEach(r=>{
       const tr=document.createElement('tr');
       tr.innerHTML=`
         <td>${fmtDateTime(r.createdAt)}</td>
         <td>${esc(r.userName)}</td>
         <td>${REQ_LABELS[r.type]||r.type}</td>
-        <td>${r.payload&&r.payload.amount?fmtMoney(r.payload.amount):'—'}</td>
+        <td>${(r.payload && r.payload.amount) ? fmtMoney(r.payload.amount) : '—'}</td>
         <td>
           <button class="btn green small" data-ap="${r.id}">✔</button>
           <button class="btn red small" data-rj="${r.id}" style="margin-left:4px">✖</button>
         </td>`;
       tbody.appendChild(tr);
     });
+
+    // Обработчики для пользователей (регистрация)
+    tbody.querySelectorAll('[data-ap-user]').forEach(b=>b.addEventListener('click',async ()=>{
+      const userId = b.dataset.apUser;
+      const users = getUsers();
+      const user = users.find(x => x.id === userId);
+      if(user) {
+        user.status = 'active';
+        saveUsers(users);
+        if(_fbReady) await fbUpdate('users/'+userId, {status: 'active'});
+        toast('Пользователь одобрен.', 'ok');
+        renderAll();
+      }
+    }));
+    
+    tbody.querySelectorAll('[data-rj-user]').forEach(b=>b.addEventListener('click',async ()=>{
+      const userId = b.dataset.rjUser;
+      const users = getUsers();
+      const user = users.find(x => x.id === userId);
+      if(user) {
+        user.status = 'rejected';
+        saveUsers(users);
+        if(_fbReady) await fbUpdate('users/'+userId, {status: 'rejected'});
+        toast('Пользователь отклонён.', 'ok');
+        renderAll();
+      }
+    }));
+
+    // Обработчики для обычных заявок
     tbody.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click',()=>{
       _commentCtx={reqId:b.dataset.ap,action:'approve'};
       document.querySelectorAll('input[name="cmt"]').forEach(r=>r.checked=false);
@@ -1790,7 +1850,7 @@ async function renderIndex(){
       document.querySelector('input[name="cmt"][value="noMoney"]').checked=true;
       openModal('commentModal');
     }));
-  }
+}
   document.addEventListener('click',async e=>{
     if(e.target.id!=='btnCommentConfirm')return;
     const val=document.querySelector('input[name="cmt"]:checked').value;
