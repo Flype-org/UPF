@@ -1452,8 +1452,10 @@ async function renderLogin(params){
 
   const tfp = document.getElementById('toFullFromPin');
   if (tfp) tfp.addEventListener('click', showFullUI);
-  const tp=document.getElementById('toPinFromFull');
-  if(tp)tp.addEventListener('click',showPinUI);
+  const tp = document.getElementById('toPinFromFull');
+  if (tp) {
+    tp.addEventListener('click', showPinUI);
+  }
 
   document.getElementById('authTabs').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
