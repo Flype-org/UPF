@@ -4,9 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Семейная касса УПФ (УралПромФонд)</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <style>
 /* ============================================================
-   Семейная касса УПФ — все стили
+   Семейная касса УПФ — стили
    ============================================================ */
 :root{
   --navy:#2c3e50; --navy-2:#34495e; --accent:#3498db; --accent-2:#2980b9;
@@ -211,6 +217,25 @@ table.tbl tbody tr:hover{background:#f7fbff}
 /* Подвал */
 footer.disclaimer{text-align:center;padding:18px 16px 26px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);background:#fbfdff;margin-top:auto}
 
+/* Экран загрузки */
+#loadingScreen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#d9e8f5;animation:fadeIn .4s ease both}
+#loadingScreen.hide{animation:fadeOut .5s ease both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{to{opacity:0;pointer-events:none}}
+.loading-landscape{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.9}
+.loading-greeting{position:absolute;top:24px;left:28px;font-size:22px;font-weight:700;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.35);animation:slideIn .6s ease both;z-index:2}
+@keyframes slideIn{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+.loading-ring-wrap{position:relative;width:140px;height:140px;z-index:2}
+.loading-ring{width:100%;height:100%;transform:rotate(-90deg)}
+.loading-ring .ring-bg{fill:none;stroke:rgba(255,255,255,.35);stroke-width:8}
+.loading-ring .ring-fg{fill:none;stroke:#fff;stroke-width:8;stroke-linecap:round;stroke-dasharray:264;stroke-dashoffset:264;transition:stroke-dashoffset .25s linear;filter:drop-shadow(0 2px 6px rgba(0,0,0,.2))}
+.loading-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.landscape-winter{background:linear-gradient(180deg,#e8f0fa 0%,#c5d8ec 60%,#a8c0da 100%)}
+.landscape-spring{background:linear-gradient(180deg,#e8f5e0 0%,#c5e8c0 60%,#a8d8b0 100%)}
+.landscape-summer{background:linear-gradient(180deg,#a8d8f0 0%,#f0e8a0 60%,#c8d870 100%)}
+.landscape-autumn{background:linear-gradient(180deg,#f0d8a8 0%,#e0b880 60%,#c89060 100%)}
+
+/* Адаптив */
 @media(max-width:640px){
   header.topbar h1{font-size:14px}
   main.page{padding:16px 12px 26px}
@@ -228,38 +253,55 @@ footer.disclaimer{text-align:center;padding:18px 16px 26px;font-size:12px;color:
 </head>
 <body>
 
-<!-- Область, куда роутер рендерит экраны -->
 <div id="app"></div>
-
-<!-- Тосты -->
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- Экран загрузки -->
+<div id="loadingScreen" style="display:none">
+  <div class="loading-landscape" id="loadingLandscape"></div>
+  <div class="loading-greeting" id="loadingGreeting">Добрый день!</div>
+  <div class="loading-ring-wrap">
+    <svg class="loading-ring" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="42" class="ring-bg"/>
+      <circle cx="50" cy="50" r="42" class="ring-fg" id="ringFg"/>
+    </svg>
+    <div class="loading-pct" id="loadingPct">0%</div>
+  </div>
+</div>
+<audio id="upfSound" src="UPF.mp3" preload="auto"></audio>
 <script>
-/* ============================================================
-   Семейная касса УПФ — всё приложение в одном файле
-   Хранилище: localStorage (данные) + sessionStorage (сессия)
-   ============================================================ */
 'use strict';
 
-/* ---------- Константы ---------- */
+/* ============================================================
+   КОНСТАНТЫ
+   ============================================================ */
 const LS = {
   users:'upf_users', operations:'upf_operations', loans:'upf_loans',
   cards:'upf_cards', requests:'upf_requests', config:'upf_config',
-  remembered:'upf_remembered'
+  remembered:'upf_remembered', cacheValid:'upf_cache_valid'
 };
-const SS = { session:'upf_session', pinFail:'upf_pin_fail', emailCode:'upf_email_code' };
+const SS = { session:'upf_session', pinFail:'upf_pin_fail', emailCode:'upf_email_code', adminSessionId:'upf_admin_sess' };
 const IDLE_LIMIT_MS = 5*60*1000;
 const LOAN_PERCENT = 10;
 const LOAN_TERM_DAYS = 30;
 
-/* ---------- Хранилище ---------- */
+const ADMIN_EMAIL = 'flypecorp@gmail.com';
+const ADMIN_PASS  = 'FlypeAdmin#Root2026!';
+const ADMIN_DEFAULT_PIN = '00000';
+
+/* ============================================================
+   ХРАНИЛИЩЕ (localStorage + sessionStorage)
+   ============================================================ */
 const lsGet=(k,d)=>{try{const r=localStorage.getItem(k);return r?JSON.parse(r):d}catch(e){return d}};
 const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const lsDel=k=>localStorage.removeItem(k);
 const ssGet=(k,d)=>{try{const r=sessionStorage.getItem(k);return r?JSON.parse(r):d}catch(e){return d}};
 const ssSet=(k,v)=>sessionStorage.setItem(k,JSON.stringify(v));
 const ssDel=k=>sessionStorage.removeItem(k);
 
-/* ---------- Утилиты ---------- */
+/* ============================================================
+   УТИЛИТЫ
+   ============================================================ */
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const nowISO=()=>new Date().toISOString();
 const fmtMoney=n=>{const x=Number(n)||0;return x.toLocaleString('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:2})+' ₽'};
@@ -271,9 +313,9 @@ const randomDigits=len=>{let s='';for(let i=0;i<len;i++)s+=Math.floor(Math.rando
 const isEmailGmail=e=>/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(String(e||'').trim());
 const isPin5=p=>/^\d{5}$/.test(String(p||''));
 
-/* ---------- SHA-256 (чистый JS, синхронно) ----------
-   Работает в любом браузере и через file://.
-   Для продакшена нужен bcrypt/argon2 на сервере. */
+/* ============================================================
+   SHA-256 (чистый JS)
+   ============================================================ */
 const SHA256 = (function(){
   const K = new Uint32Array([
     0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
@@ -309,9 +351,7 @@ const SHA256 = (function(){
     let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
     const w=new Uint32Array(64);
     for(let off=0;off<bytes.length;off+=64){
-      for(let i=0;i<16;i++){
-        w[i]=(bytes[off+i*4]<<24)|(bytes[off+i*4+1]<<16)|(bytes[off+i*4+2]<<8)|bytes[off+i*4+3];
-      }
+      for(let i=0;i<16;i++)w[i]=(bytes[off+i*4]<<24)|(bytes[off+i*4+1]<<16)|(bytes[off+i*4+2]<<8)|bytes[off+i*4+3];
       for(let i=16;i<64;i++){
         const s0=rotr(w[i-15],7)^rotr(w[i-15],18)^(w[i-15]>>>3);
         const s1=rotr(w[i-2],17)^rotr(w[i-2],19)^(w[i-2]>>>10);
@@ -335,43 +375,197 @@ const SHA256 = (function(){
   };
 })();
 
-/* ---------- Хеши паролей / PIN ---------- */
-function makeHash(secret){
-  const salt=uid()+uid();
-  return {salt, hash:SHA256(salt+'::'+secret)};
-}
-function verifyHash(secret, salt, hash){
-  return SHA256(salt+'::'+secret)===hash;
+function makeHash(secret){const salt=uid()+uid();return{salt,hash:SHA256(salt+'::'+secret)}}
+function verifyHash(secret,salt,hash){return SHA256(salt+'::'+secret)===hash}
+
+/* ============================================================
+   FIREBASE
+   ============================================================ */
+/* ⚠️ ЗАМЕНИТЕ на свой конфиг из Firebase Console */
+const firebaseConfig = {
+  apiKey: "AIzaSyDRGu3eIKuDbJ8Lzp4ohJHbYMS1Duly878",
+  authDomain: "uralpf.firebaseapp.com",
+  databaseURL: "https://uralpf-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "uralpf",
+  storageBucket: "uralpf.firebasestorage.app",
+  messagingSenderId: "8019302265",
+  appId: "1:8019302265:web:65f1f14021ad64e3da01a8",
+  measurementId: "G-YYQSYK7KJ6"
+};
+
+let fdb=null, fauth=null;
+let _fbReady=false;
+try{
+  firebase.initializeApp(firebaseConfig);
+  fdb=firebase.database();
+  fauth=firebase.auth();
+  _fbReady=true;
+}catch(e){
+  console.warn('Firebase не инициализирован — работаем локально:',e.message);
 }
 
-/* ---------- Пользователи ---------- */
+let _fbAuthPromise=null;
+function ensureFirebaseAuth(){
+  if(!_fbReady)return Promise.reject(new Error('Firebase недоступен'));
+  if(_fbAuthPromise)return _fbAuthPromise;
+  _fbAuthPromise=new Promise((resolve,reject)=>{
+    if(fauth.currentUser)return resolve(fauth.currentUser);
+    fauth.signInAnonymously().then(cr=>resolve(cr.user)).catch(reject);
+  });
+  return _fbAuthPromise;
+}
+
+async function fbSet(path,value){if(!_fbReady)return null;await ensureFirebaseAuth();return fdb.ref(path).set(value)}
+async function fbUpdate(path,value){if(!_fbReady)return null;await ensureFirebaseAuth();return fdb.ref(path).update(value)}
+async function fbPush(path,value){if(!_fbReady)return null;await ensureFirebaseAuth();return fdb.ref(path).push(value)}
+async function fbGet(path){if(!_fbReady)return null;await ensureFirebaseAuth();const s=await fdb.ref(path).once('value');return s.val()}
+
+/* ---------- Загрузка кэша из Firebase ---------- */
+async function syncFromFirebase(){
+  if(!_fbReady)return false;
+  try{
+    await ensureFirebaseAuth();
+    const snap=await fdb.ref('/').once('value');
+    const data=snap.val()||{};
+    const toArr=obj=>obj?Object.values(obj):[];
+    if(data.users)      lsSet(LS.users,toArr(data.users));
+    if(data.operations) lsSet(LS.operations,toArr(data.operations));
+    if(data.loans)      lsSet(LS.loans,toArr(data.loans));
+    if(data.cards)      lsSet(LS.cards,toArr(data.cards));
+    if(data.requests)   lsSet(LS.requests,toArr(data.requests));
+    if(data.config)     lsSet(LS.config,data.config);
+    lsSet(LS.cacheValid,Date.now());
+    return true;
+  }catch(e){
+    console.warn('Синхронизация не удалась:',e.message);
+    return false;
+  }
+}
+
+/* ---------- Realtime-подписки ---------- */
+function startRealtimeSync(){
+  if(!_fbReady)return;
+  ensureFirebaseAuth().then(()=>{
+    const bind=(node,lsKey,transform)=>{
+      fdb.ref(node).on('value',s=>{
+        const v=s.val();
+        const arr=v?Object.values(v):[];
+        lsSet(lsKey,arr);
+        if(window._onRealtimeUpdate)window._onRealtimeUpdate(node);
+      });
+    };
+    bind('users',LS.users);
+    bind('operations',LS.operations);
+    bind('loans',LS.loans);
+    bind('cards',LS.cards);
+    bind('requests',LS.requests);
+  }).catch(e=>console.warn('Realtime не запущен:',e.message));
+}
+
+/* ============================================================
+   АВТОСОЗДАНИЕ АДМИНА
+   ============================================================ */
+async function ensureAdminExists(){
+  if(!_fbReady)return;
+  try{
+    await ensureFirebaseAuth();
+    const snap=await fdb.ref('users').orderByChild('email').equalTo(ADMIN_EMAIL).once('value');
+    if(snap.exists())return;
+    const adminId='admin_'+uid();
+    const admin={
+      id:adminId,
+      lastname:'Администратор',name:'УПФ',patronymic:'',
+      fio:'Администратор УПФ',
+      email:ADMIN_EMAIL,
+      pass:makeHash(ADMIN_PASS),
+      pin:makeHash(ADMIN_DEFAULT_PIN),
+      avatar:'',
+      role:'admin',status:'active',blocked:false,
+      createdAt:nowISO()
+    };
+    await fdb.ref('users/'+adminId).set(admin);
+    console.log('✓ Админ создан:',ADMIN_EMAIL);
+  }catch(e){
+    console.warn('Не удалось создать админа:',e.message);
+  }
+}
+
+/* ============================================================
+   ТЕХРАБОТЫ
+   ============================================================ */
+async function getMaintenance(){
+  if(!_fbReady){
+    const c=lsGet(LS.config,{});
+    return c.maintenance||null;
+  }
+  try{return await fbGet('config/maintenance')}catch(e){return null}
+}
+async function setMaintenanceMode(enabled,comment){
+  const sess=getSession();
+  if(!sess||sess.user.role!=='admin')throw new Error('Только админ');
+  const val={enabled:!!enabled,comment:comment||'Скоро вернёмся!',updatedAt:nowISO()};
+  if(_fbReady)await fbSet('config/maintenance',val);
+  const cfg=lsGet(LS.config,{});
+  cfg.maintenance=val;
+  lsSet(LS.config,cfg);
+}
+
+/* ============================================================
+   ОДНА СЕССИЯ АДМИНА
+   ============================================================ */
+async function claimAdminSession(sessionId){
+  if(!_fbReady)return true;
+  const ref=fdb.ref('config/adminSession');
+  try{
+    const result=await ref.transaction(cur=>{
+      if(cur&&cur.active&&cur.sessionId&&cur.sessionId!==sessionId&&cur.heartbeatAt){
+        const age=Date.now()-new Date(cur.heartbeatAt).getTime();
+        if(age<60*1000)return;
+      }
+      return {sessionId,active:true,heartbeatAt:nowISO()};
+    });
+    if(!result.committed)throw new Error('Аккаунт администратора уже используется на другом устройстве.');
+  }catch(e){
+    throw new Error(e.message||'Не удалось захватить сессию админа.');
+  }
+  setInterval(()=>{
+    if(_fbReady)fdb.ref('config/adminSession/heartbeatAt').set(nowISO()).catch(()=>{});
+  },30*1000);
+  return true;
+}
+async function releaseAdminSession(sessionId){
+  if(!_fbReady)return;
+  try{
+    const v=await fbGet('config/adminSession');
+    if(v&&v.sessionId===sessionId){
+      await fbSet('config/adminSession',{active:false,sessionId:null,heartbeatAt:null});
+    }
+  }catch(e){}
+}
+
+/* ============================================================
+   ПОЛЬЗОВАТЕЛИ / ДАННЫЕ (локальный кэш)
+   ============================================================ */
 const getUsers=()=>lsGet(LS.users,[]);
 const saveUsers=u=>lsSet(LS.users,u);
 const getUserById=id=>getUsers().find(u=>u.id===id)||null;
 const getUserByEmail=e=>{const x=String(e||'').trim().toLowerCase();return getUsers().find(u=>u.email.toLowerCase()===x)||null};
 const isApproved=u=>u&&(u.role==='admin'||u.status==='active');
 
-/* ---------- Операции ---------- */
 const getOps=()=>lsGet(LS.operations,[]);
 const saveOps=o=>lsSet(LS.operations,o);
-function addOp(op){const ops=getOps();ops.push({id:uid(),ts:nowISO(),...op});saveOps(ops)}
-
-/* ---------- Займы ---------- */
 const getLoans=()=>lsGet(LS.loans,[]);
 const saveLoans=l=>lsSet(LS.loans,l);
-const getActiveLoan=uid_=>getLoans().find(l=>l.userId===uid_&&l.status==='active')||null;
-
-/* ---------- Карты ---------- */
+const getActiveLoan=userId=>getLoans().find(l=>l.userId===userId&&l.status==='active')||null;
 const getCards=()=>lsGet(LS.cards,[]);
 const saveCards=c=>lsSet(LS.cards,c);
-const getUserCard=uid_=>getCards().find(c=>c.userId===uid_)||null;
-
-/* ---------- Заявки ---------- */
+const getUserCard=userId=>getCards().find(c=>c.userId===userId)||null;
 const getRequests=()=>lsGet(LS.requests,[]);
 const saveRequests=r=>lsSet(LS.requests,r);
-function addRequest(req){const r=getRequests();r.push({id:uid(),ts:nowISO(),status:'pending',...req});saveRequests(r)}
 
-/* ---------- Балансы ---------- */
+/* ============================================================
+   БАЛАНСЫ
+   ============================================================ */
 function getTreasuryBalance(){
   let bal=0;
   for(const op of getOps()){
@@ -379,6 +573,7 @@ function getTreasuryBalance(){
     else if(op.type==='loan_out')bal-=op.amount;
     else if(op.type==='loan_return')bal+=op.amount;
     else if(op.type==='personal_to_treasury')bal+=op.amount;
+    else if(op.type==='admin_treasury_out')bal-=op.amount;
   }
   return Math.max(0,bal);
 }
@@ -399,23 +594,28 @@ function getPersonalBalance(userId){
   return Math.max(0,b);
 }
 
-/* ---------- Сессия ---------- */
-const getSession=()=>{
+/* ============================================================
+   СЕССИЯ
+   ============================================================ */
+function getSession(){
   const s=ssGet(SS.session,null);
   if(!s||!s.userId)return null;
   const u=getUserById(s.userId);
-  if(!u||!isApproved(u))return null;
+  if(!u||!isApproved(u)||u.blocked)return null;
   return {...s,user:u};
-};
+}
 function setSession(userId){
   ssSet(SS.session,{userId,loginAt:nowISO()});
   lsSet(LS.remembered,{userId});
 }
 function clearSession(){ssDel(SS.session)}
 
-/* ---------- Уведомления ---------- */
+/* ============================================================
+   ТОСТЫ
+   ============================================================ */
 function toast(msg,type){
   const w=document.getElementById('toastWrap');
+  if(!w)return;
   const t=document.createElement('div');
   t.className='toast '+(type||'');
   t.textContent=msg;
@@ -423,12 +623,25 @@ function toast(msg,type){
   setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},3200);
 }
 
-/* ---------- Таймер бездействия ---------- */
+/* ============================================================
+   МОДАЛКИ
+   ============================================================ */
+function openModal(id){const el=document.getElementById(id);if(!el)return;el.classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('open');document.body.style.overflow=''}
+function closeAllModals(){document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));document.body.style.overflow=''}
+document.addEventListener('click',e=>{if(e.target.classList&&e.target.classList.contains('modal-overlay'))closeAllModals()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllModals()});
+
+/* ============================================================
+   ТАЙМЕР БЕЗДЕЙСТВИЯ
+   ============================================================ */
 let _idle=null;
 function resetIdle(){
   if(_idle)clearTimeout(_idle);
-  _idle=setTimeout(()=>{
+  _idle=setTimeout(async()=>{
     if(getSession()){
+      const mySess=ssGet(SS.adminSessionId,null);
+      if(mySess)await releaseAdminSession(mySess);
       clearSession();
       location.hash='#/login?reason=idle';
     }
@@ -442,26 +655,21 @@ function startIdle(){
   });
 }
 
-/* ---------- QR-код (мини-реализация, без CDN) ----------
-   Внимание: чтобы файл был автономным, реализован упрощённый
-   генератор QR версии 3 (29x29) в байтовом режиме.
-   Данные короткие (номер+код+ФИО урезаны), поэтому хватает. */
+/* ============================================================
+   QR-КОД (мини-реализация без CDN)
+   ============================================================ */
 function makeQR(text){
-  // Простейшая реализация QR Code версии 3-M в байтовом режиме.
-  // Для очень длинных данных вернёт null.
-  const data=[]; // байты UTF-8
+  const data=[];
   for(let i=0;i<text.length;i++){
     let c=text.charCodeAt(i);
     if(c<0x80)data.push(c);
     else if(c<0x800){data.push(0xC0|(c>>6),0x80|(c&0x3F))}
     else{data.push(0xE0|(c>>12),0x80|((c>>6)&0x3F),0x80|(c&0x3F))}
   }
-  // Версия 3-M: 29x29, вмещает до 44 байт в байтовом режиме.
   if(data.length>44)return null;
   const size=29;
   const mods=Array.from({length:size},()=>Array(size).fill(false));
   const reserved=Array.from({length:size},()=>Array(size).fill(false));
-
   function placeFinder(r,c){
     for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){
       const rr=r+i,cc=c+j;
@@ -471,51 +679,24 @@ function makeQR(text){
     }
   }
   placeFinder(0,0);placeFinder(0,size-7);placeFinder(size-7,0);
-
-  // Тайминг-паттерны
-  for(let i=8;i<size-8;i++){
-    mods[6][i]=i%2===0;reserved[6][i]=true;
-    mods[i][6]=i%2===0;reserved[i][6]=true;
-  }
-  // Тёмный модуль
+  for(let i=8;i<size-8;i++){mods[6][i]=i%2===0;reserved[6][i]=true;mods[i][6]=i%2===0;reserved[i][6]=true}
   mods[size-8][8]=true;reserved[size-8][8]=true;
-
-  // Форматная информация (упрощённо, для маски 0 и уровня M)
-  // Реальные значения битов формата для M/mask0: 101010000010010
   const fmt='101010000010010';
-  // размещение format info вокруг finder'ов (стандартные позиции)
-  const fmtPos1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
-  const fmtPos2=[[size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8],[8,size-8],[8,size-7],[8,size-6],[8,size-5],[8,size-4],[8,size-3],[8,size-2],[8,size-1]];
-  const fmtBits=fmt.split('').map(Number);
-  for(let i=0;i<15;i++){
-    const p1=fmtPos1[i],p2=fmtPos2[i];
-    mods[p1[0]][p1[1]]=fmtBits[i]===1;
-    mods[p2[0]][p2[1]]=fmtBits[i]===1;
-  }
-  reserved[8][size-8]=true;
-  mods[8][size-8]=true;
-
-  // Данные: mode(4) + длина(8) + данные + terminator
+  const p1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+  const p2=[[size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8],[8,size-8],[8,size-7],[8,size-6],[8,size-5],[8,size-4],[8,size-3],[8,size-2],[8,size-1]];
+  const fb=fmt.split('').map(Number);
+  for(let i=0;i<15;i++){mods[p1[i][0]][p1[i][1]]=fb[i]===1;mods[p2[i][0]][p2[i][1]]=fb[i]===1}
+  reserved[8][size-8]=true;mods[8][size-8]=true;
   const bits=[];
   const pushBits=(val,len)=>{for(let i=len-1;i>=0;i--)bits.push((val>>i)&1)};
-  pushBits(4,4); // byte mode
-  pushBits(data.length,8);
+  pushBits(4,4);pushBits(data.length,8);
   for(const b of data)pushBits(b,8);
-  // terminator
   const cap=44*8;
-  while(bits.length<cap && bits.length<cap)bits.push(0);
+  while(bits.length<cap)bits.push(0);
   while(bits.length%8!==0)bits.push(0);
-  // Паддинг
-  const padBytes=[0xEC,0x11];
-  let pi=0;
-  while(bits.length<cap){
-    pushBits(padBytes[pi%2],8);pi++;
-  }
-
-  // Размещение данных (зигзаг)
-  let bitIdx=0;
-  let col=size-1;
-  let up=true;
+  const pad=[0xEC,0x11];let pi=0;
+  while(bits.length<cap){pushBits(pad[pi%2],8);pi++}
+  let bi=0,col=size-1,up=true;
   while(col>0){
     if(col===6)col--;
     for(let k=0;k<size;k++){
@@ -523,54 +704,40 @@ function makeQR(text){
       for(let dc=0;dc<2;dc++){
         const c=col-dc;
         if(reserved[row][c])continue;
-        if(bitIdx<bits.length){
-          mods[row][c]=bits[bitIdx]===1;
-          bitIdx++;
-        }
+        if(bi<bits.length){mods[row][c]=bits[bi]===1;bi++}
       }
     }
-    up=!up;
-    col-=2;
+    up=!up;col-=2;
   }
-
-  // Маска 0: (row+col)%2==0 -> инвертировать
   for(let r=0;r<size;r++)for(let c=0;c<size;c++){
     if(reserved[r][c])continue;
     if((r+c)%2===0)mods[r][c]=!mods[r][c];
   }
-
   return mods;
 }
-function drawQR(container, text){
+function drawQR(container,text){
+  if(!container)return;
   container.innerHTML='';
   const mods=makeQR(text);
-  if(!mods){
-    container.innerHTML='<div style="font-size:11px;color:#7f8c8d;padding:6px;text-align:center">QR</div>';
-    return;
-  }
-  const size=mods.length;
-  const scale=4;
-  const pad=2;
-  const px=size*scale+pad*2;
-  const canvas=document.createElement('canvas');
-  canvas.width=px;canvas.height=px;
-  const ctx=canvas.getContext('2d');
+  if(!mods){container.innerHTML='<div style="font-size:11px;color:#7f8c8d;padding:6px;text-align:center">QR</div>';return}
+  const size=mods.length,scale=4,pad=2,px=size*scale+pad*2;
+  const cv=document.createElement('canvas');
+  cv.width=px;cv.height=px;
+  const ctx=cv.getContext('2d');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,px,px);
   ctx.fillStyle='#2c3e50';
   for(let r=0;r<size;r++)for(let c=0;c<size;c++){
     if(mods[r][c])ctx.fillRect(pad+c*scale,pad+r*scale,scale,scale);
   }
-  canvas.style.width='100%';
-  canvas.style.height='auto';
-  canvas.style.imageRendering='pixelated';
-  container.appendChild(canvas);
+  cv.style.width='100%';cv.style.height='auto';cv.style.imageRendering='pixelated';
+  container.appendChild(cv);
 }
 
-/* ---------- Генерация номера/кода карты ---------- */
+/* ============================================================
+   КАРТА / АВАТАР
+   ============================================================ */
 const genCardNumber=()=>String(1+Math.floor(Math.random()*9))+randomDigits(9);
 const genCardCode=()=>randomDigits(3);
-
-/* ---------- Обрезка аватара под круг ---------- */
 function cropAvatar(file,size,cb){
   const r=new FileReader();
   r.onload=e=>{
@@ -590,65 +757,414 @@ function cropAvatar(file,size,cb){
   r.readAsDataURL(file);
 }
 
-/* ---------- Модальные окна (утилиты) ---------- */
-function openModal(id){const el=document.getElementById(id);if(!el)return;el.classList.add('open');document.body.style.overflow='hidden'}
-function closeModal(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('open');document.body.style.overflow=''}
-function closeAllModals(){
-  document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
-  document.body.style.overflow='';
+/* ============================================================
+   ЭКРАН ЗАГРУЗКИ
+   ============================================================ */
+function getGreeting(name){
+  const h=new Date().getHours();
+  let greet;
+  if(h>=5&&h<12)greet='Доброе утро';
+  else if(h>=12&&h<18)greet='Добрый день';
+  else if(h>=18&&h<23)greet='Добрый вечер';
+  else greet='Доброй ночи';
+  return greet+', '+name+'!';
 }
-document.addEventListener('click',e=>{
-  if(e.target.classList&&e.target.classList.contains('modal-overlay'))closeAllModals();
-});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllModals()});
+function getSeasonClass(){
+  const m=new Date().getMonth();
+  if(m>=2&&m<=4)return 'landscape-spring';
+  if(m>=5&&m<=7)return 'landscape-summer';
+  if(m>=8&&m<=10)return 'landscape-autumn';
+  return 'landscape-winter';
+}
+async function showLoadingScreen(firstName){
+  const screen=document.getElementById('loadingScreen');
+  const greeting=document.getElementById('loadingGreeting');
+  const landscape=document.getElementById('loadingLandscape');
+  const ring=document.getElementById('ringFg');
+  const pct=document.getElementById('loadingPct');
+  const sound=document.getElementById('upfSound');
+  greeting.textContent=getGreeting(firstName);
+  landscape.className='loading-landscape '+getSeasonClass();
+  screen.style.display='flex';
+  screen.classList.remove('hide');
+  ring.style.strokeDashoffset='264';
+  pct.textContent='0%';
+  try{if(sound){sound.currentTime=0;await sound.play()}}catch(e){}
+  return new Promise(resolve=>{
+    let progress=0;
+    const C=264;
+    const iv=setInterval(()=>{
+      progress=Math.min(100,progress+4+Math.random()*4);
+      ring.style.strokeDashoffset=String(C*(1-progress/100));
+      pct.textContent=Math.round(progress)+'%';
+      if(progress>=100){
+        clearInterval(iv);
+        setTimeout(()=>{
+          screen.classList.add('hide');
+          setTimeout(()=>{screen.style.display='none';resolve()},500);
+        },300);
+      }
+    },120);
+  });
+}
 
 /* ============================================================
-   Роутер
+   ЗАЯВКИ (типы и комментарии)
    ============================================================ */
-const routes = {
-  'login': renderLogin,
-  'index': renderIndex,
-  'personal': renderPersonal,
-  'card': renderCard,
-  'account': renderAccount
+const REQ_TYPE = {
+  CONTRIBUTE:'contribute_to_treasury',
+  PERSONAL_DEPOSIT:'personal_deposit',
+  PERSONAL_WITHDRAW:'personal_withdraw',
+  PERSONAL_TO_TREASURY:'personal_to_treasury',
+  TAKE_LOAN:'take_loan',
+  RETURN_LOAN:'return_loan',
+  ISSUE_CARD:'issue_card',
+  BLOCK_CARD:'block_card',
+  ADMIN_ADD_TREASURY:'admin_add_treasury',
+  ADMIN_REMOVE_TREASURY:'admin_remove_treasury',
+  ADMIN_ADD_PERSONAL:'admin_add_personal',
+  ADMIN_ADD_DEBT:'admin_add_debt',
+  ADMIN_CANCEL_DEBT:'admin_cancel_debt',
+  ADMIN_BLOCK_USER:'admin_block_user',
+  ADMIN_BLOCK_CARD:'admin_block_card',
+  ADMIN_RESET_ACCOUNT:'admin_reset_account'
 };
+const ADMIN_COMMENTS={
+  ok:'Успешно.',
+  noMoney:'Недостаточно средств.',
+  noCard:'Ваша карта заблокирована или не оформлен личный счёт, операция была отклонена.',
+  soonBack:'Скоро вернёмся!'
+};
+const REQ_LABELS={
+  contribute_to_treasury:'Взнос в казну',
+  personal_deposit:'Пополнение личного',
+  personal_withdraw:'Снятие с личного',
+  personal_to_treasury:'Перевод в казну',
+  take_loan:'Взятие займа',
+  return_loan:'Возврат займа',
+  issue_card:'Оформление карты',
+  block_card:'Блокировка карты'
+};
+
+/* ---------- Создание заявки пользователем ---------- */
+async function createRequest(type,payload){
+  const sess=getSession();
+  if(!sess)throw new Error('Нет сессии');
+  const me=sess.user;
+  if(me.blocked)throw new Error('Аккаунт заблокирован');
+
+  if([REQ_TYPE.PERSONAL_WITHDRAW,REQ_TYPE.PERSONAL_TO_TREASURY,REQ_TYPE.CONTRIBUTE,REQ_TYPE.RETURN_LOAN].includes(type)){
+    const bal=getPersonalBalance(me.id);
+    const amt=Number(payload.amount)||0;
+    if(amt>bal)throw new Error('Недостаточно средств на личном счёте. Доступно: '+fmtMoney(bal));
+  }
+  if(type===REQ_TYPE.TAKE_LOAN){
+    const tre=getTreasuryBalance();
+    const amt=Number(payload.amount)||0;
+    if(amt>tre)throw new Error('Нельзя занять больше, чем в казне ('+fmtMoney(tre)+').');
+    if(getActiveLoan(me.id))throw new Error('У вас уже есть активный заём.');
+  }
+  if(type===REQ_TYPE.RETURN_LOAN&&!getActiveLoan(me.id))throw new Error('Нет активного займа.');
+  if(type===REQ_TYPE.ISSUE_CARD&&getUserCard(me.id))throw new Error('Карта уже оформлена.');
+
+  const req={
+    id:uid(),type,userId:me.id,userName:me.fio,payload,
+    status:'pending',adminComment:'',createdAt:nowISO(),
+    reviewedAt:null,reviewedBy:null
+  };
+  const reqs=getRequests();
+  reqs.push(req);
+  saveRequests(reqs);
+  if(_fbReady)await fbSet('requests/'+req.id,req);
+  return req;
+}
+
+/* ---------- Одобрение / отклонение (только админ) ---------- */
+async function approveRequest(requestId,commentKey){
+  const sess=getSession();
+  if(!sess||sess.user.role!=='admin')throw new Error('Только админ');
+  const reqs=getRequests();
+  const req=reqs.find(r=>r.id===requestId);
+  if(!req||req.status!=='pending')return;
+  const comment=ADMIN_COMMENTS[commentKey]||ADMIN_COMMENTS.ok;
+  try{
+    await executeApprovedOperation(req);
+    req.status='approved';
+    req.adminComment=comment;
+    req.reviewedAt=nowISO();
+    req.reviewedBy=sess.user.id;
+    saveRequests(reqs);
+    if(_fbReady)await fbUpdate('requests/'+req.id,{status:'approved',adminComment:comment,reviewedAt:req.reviewedAt,reviewedBy:req.reviewedBy});
+    toast('Одобрено: '+comment,'ok');
+  }catch(e){
+    toast('Ошибка: '+e.message,'err');
+    throw e;
+  }
+}
+
+async function rejectRequest(requestId,commentKey){
+  const sess=getSession();
+  if(!sess||sess.user.role!=='admin')throw new Error('Только админ');
+  const reqs=getRequests();
+  const req=reqs.find(r=>r.id===requestId);
+  if(!req||req.status!=='pending')return;
+  const comment=ADMIN_COMMENTS[commentKey]||ADMIN_COMMENTS.noMoney;
+  req.status='rejected';
+  req.adminComment=comment;
+  req.reviewedAt=nowISO();
+  req.reviewedBy=sess.user.id;
+  saveRequests(reqs);
+  if(_fbReady)await fbUpdate('requests/'+req.id,{status:'rejected',adminComment:comment,reviewedAt:req.reviewedAt,reviewedBy:req.reviewedBy});
+  toast('Отклонено: '+comment,'ok');
+}
+
+/* ---------- Исполнение одобренной операции ---------- */
+async function executeApprovedOperation(req){
+  const {type,userId,userName,payload}=req;
+  const amt=Number(payload.amount)||0;
+  const ts=nowISO();
+  const requestId=req.id;
+
+  const pushOp=async(op)=>{
+    const id=uid();
+    const full={id,userId,userName,requestId,ts,...op};
+    const ops=getOps();ops.push(full);saveOps(ops);
+    if(_fbReady)await fbSet('operations/'+id,full);
+    return full;
+  };
+
+  switch(type){
+    case REQ_TYPE.PERSONAL_DEPOSIT:
+      await pushOp({type:'personal_deposit',amount:amt});
+      break;
+
+    case REQ_TYPE.PERSONAL_WITHDRAW:
+      if(getPersonalBalance(userId)<amt)throw new Error(ADMIN_COMMENTS.noMoney);
+      await pushOp({type:'personal_withdraw',amount:amt});
+      break;
+
+    case REQ_TYPE.PERSONAL_TO_TREASURY:
+    case REQ_TYPE.CONTRIBUTE:
+      if(getPersonalBalance(userId)<amt)throw new Error(ADMIN_COMMENTS.noMoney);
+      await pushOp({type:'personal_to_treasury',amount:amt});
+      break;
+
+    case REQ_TYPE.TAKE_LOAN:{
+      if(getTreasuryBalance()<amt)throw new Error(ADMIN_COMMENTS.noMoney);
+      if(getActiveLoan(userId))throw new Error('Уже есть активный заём');
+      const due=new Date();due.setDate(due.getDate()+LOAN_TERM_DAYS);
+      const loanId=uid();
+      const loan={id:loanId,userId,userName,amount:amt,percent:LOAN_PERCENT,takenAt:ts,dueDate:due.toISOString(),status:'active',requestId};
+      const loans=getLoans();loans.push(loan);saveLoans(loans);
+      if(_fbReady)await fbSet('loans/'+loanId,loan);
+      await pushOp({type:'loan_out',amount:amt,comment:'Списание из казны на заём'});
+      await pushOp({type:'personal_deposit',amount:amt,comment:'Зачисление займа на личный'});
+      break;
+    }
+
+    case REQ_TYPE.RETURN_LOAN:{
+      if(getPersonalBalance(userId)<amt)throw new Error(ADMIN_COMMENTS.noMoney);
+      const loan=getActiveLoan(userId);
+      if(!loan)throw new Error('Нет активного займа');
+      const loans=getLoans();const l=loans.find(x=>x.id===loan.id);
+      if(l){l.status='returned';l.returnedAt=ts;l.requestId=requestId}
+      saveLoans(loans);
+      if(_fbReady)await fbUpdate('loans/'+loan.id,{status:'returned',returnedAt:ts,requestId});
+      await pushOp({type:'personal_withdraw',amount:amt,comment:'Списание с личного на возврат'});
+      await pushOp({type:'loan_return',amount:amt,comment:'Возврат займа в казну'});
+      break;
+    }
+
+    case REQ_TYPE.ISSUE_CARD:{
+      if(getUserCard(userId))throw new Error('Карта уже оформлена');
+      const cardId=uid();
+      const card={id:cardId,userId,userName,number:genCardNumber(),code:genCardCode(),status:'active',issuedAt:ts,requestId};
+      const cards=getCards();cards.push(card);saveCards(cards);
+      if(_fbReady)await fbSet('cards/'+cardId,card);
+      break;
+    }
+
+    case REQ_TYPE.BLOCK_CARD:{
+      const card=getUserCard(userId);
+      if(!card)throw new Error(ADMIN_COMMENTS.noCard);
+      const newStatus=card.status==='blocked'?'active':'blocked';
+      const cards=getCards();const c=cards.find(x=>x.id===card.id);
+      if(c)c.status=newStatus;
+      saveCards(cards);
+      if(_fbReady)await fbUpdate('cards/'+card.id,{status:newStatus,requestId});
+      break;
+    }
+
+    default:
+      throw new Error('Неизвестный тип заявки: '+type);
+  }
+}
+
+/* ============================================================
+   АДМИНСКИЕ МГНОВЕННЫЕ ДЕЙСТВИЯ
+   ============================================================ */
+async function adminAction(type,payload){
+  const sess=getSession();
+  if(!sess||sess.user.role!=='admin')throw new Error('Только админ');
+  const admin=sess.user;
+  const ts=nowISO();
+
+  const pushOp=async(op)=>{
+    const id=uid();
+    const full={id,ts,...op};
+    const ops=getOps();ops.push(full);saveOps(ops);
+    if(_fbReady)await fbSet('operations/'+id,full);
+  };
+
+  switch(type){
+    case REQ_TYPE.ADMIN_ADD_TREASURY:{
+      const amt=Number(payload.amount);
+      if(!isFinite(amt)||amt<=0)throw new Error('Некорректная сумма');
+      await pushOp({type:'contribute',userId:admin.id,userName:admin.fio,amount:amt,comment:'Админ: пополнение казны',byAdmin:true});
+      break;
+    }
+    case REQ_TYPE.ADMIN_REMOVE_TREASURY:{
+      const amt=Number(payload.amount);
+      if(!isFinite(amt)||amt<=0)throw new Error('Некорректная сумма');
+      if(getTreasuryBalance()<amt)throw new Error('В казне недостаточно средств');
+      await pushOp({type:'admin_treasury_out',userId:admin.id,userName:admin.fio,amount:amt,comment:'Админ: изъятие из казны (не долг)',byAdmin:true});
+      break;
+    }
+    case REQ_TYPE.ADMIN_ADD_PERSONAL:{
+      const amt=Number(payload.amount);
+      if(!isFinite(amt)||amt<=0)throw new Error('Некорректная сумма');
+      await pushOp({type:'personal_deposit',userId:payload.targetUserId,userName:payload.targetUserName,amount:amt,comment:'Админ: пополнение личного счёта',byAdmin:true});
+      break;
+    }
+    case REQ_TYPE.ADMIN_ADD_DEBT:{
+      const amt=Number(payload.amount);
+      if(!isFinite(amt)||amt<=0)throw new Error('Некорректная сумма');
+      const due=new Date();due.setDate(due.getDate()+LOAN_TERM_DAYS);
+      const loanId=uid();
+      const loan={id:loanId,userId:payload.targetUserId,userName:payload.targetUserName,amount:amt,percent:0,takenAt:ts,dueDate:due.toISOString(),status:'active',byAdmin:true,comment:'Долг введён админом'};
+      const loans=getLoans();loans.push(loan);saveLoans(loans);
+      if(_fbReady)await fbSet('loans/'+loanId,loan);
+      break;
+    }
+    case REQ_TYPE.ADMIN_CANCEL_DEBT:{
+      const loan=getActiveLoan(payload.targetUserId);
+      if(!loan)throw new Error('Нет активного долга');
+      const loans=getLoans();const l=loans.find(x=>x.id===loan.id);
+      if(l){l.status='cancelled';l.cancelledAt=ts;l.byAdmin=true;l.comment='Аннулировано админом'}
+      saveLoans(loans);
+      if(_fbReady)await fbUpdate('loans/'+loan.id,{status:'cancelled',cancelledAt:ts,byAdmin:true,comment:'Аннулировано админом'});
+      break;
+    }
+    case REQ_TYPE.ADMIN_BLOCK_USER:{
+      const users=getUsers();const u=users.find(x=>x.id===payload.targetUserId);
+      if(!u)throw new Error('Пользователь не найден');
+      u.blocked=true;u.blockedAt=ts;
+      saveUsers(users);
+      if(_fbReady)await fbUpdate('users/'+u.id,{blocked:true,blockedAt:ts});
+      break;
+    }
+    case REQ_TYPE.ADMIN_BLOCK_CARD:{
+      const card=getUserCard(payload.targetUserId);
+      if(!card)throw new Error('Карта не найдена');
+      const cards=getCards();const c=cards.find(x=>x.id===card.id);
+      if(c)c.status='blocked';
+      saveCards(cards);
+      if(_fbReady)await fbUpdate('cards/'+card.id,{status:'blocked',blockedAt:ts});
+      break;
+    }
+    case REQ_TYPE.ADMIN_RESET_ACCOUNT:{
+      const loans=getLoans().filter(l=>l.userId===payload.targetUserId&&l.status==='active');
+      for(const l of loans){
+        l.status='cancelled';l.cancelledAt=ts;l.byAdmin=true;
+        if(_fbReady)await fbUpdate('loans/'+l.id,{status:'cancelled',cancelledAt:ts,byAdmin:true});
+      }
+      saveLoans(getLoans());
+      const bal=getPersonalBalance(payload.targetUserId);
+      if(bal>0){
+        await pushOp({type:'personal_withdraw',userId:payload.targetUserId,userName:payload.targetUserName,amount:bal,comment:'Админ: сброс личного счёта',byAdmin:true});
+      }
+      break;
+    }
+    default:throw new Error('Неизвестное действие: '+type);
+  }
+  toast('Операция выполнена.','ok');
+}
+</script>
+<script>
+/* ============================================================
+   РОУТЕР И ЭКРАНЫ
+   ============================================================ */
 
 function parseHash(){
   const h=location.hash.replace(/^#\/?/,'');
   const [path,qs]=h.split('?');
   const params=new URLSearchParams(qs||'');
-  return {path:path||(getSession()?'index':'login'), params};
+  return {path:path||(getSession()?'index':'login'),params};
 }
-
 function navigate(path,params){
   let h='#/'+path;
   if(params){
     const q=new URLSearchParams(params).toString();
     if(q)h+='?'+q;
   }
-  if(location.hash===h){route()}
+  if(location.hash===h)route();
   else location.hash=h;
 }
 
-function route(){
+async function route(){
   const {path,params}=parseHash();
+
+  // Техработы — проверяем ДО всего
+  const maint=await getMaintenance();
   const sess=getSession();
-  // Защита: если сессии нет, кроме login — на login
-  if(!sess && path!=='login'){location.replace('#/login');return}
-  // Если сессия есть, а открыт login — на index
-  if(sess && path==='login'){location.replace('#/index');return}
+  if(maint&&maint.enabled){
+    if(!sess||sess.user.role!=='admin'){
+      document.getElementById('app').innerHTML=`
+        <div class="auth-screen">
+          <div class="auth-box center">
+            <div class="auth-brand">
+              <div class="logo">УПФ</div>
+              <h1>Технические работы</h1>
+            </div>
+            <p style="font-size:16px;margin:20px 0">
+              К сожалению, доступ к сайту временно ограничен из-за ведущихся технических работ.
+            </p>
+            <p class="text-muted" style="font-size:14px">${esc(maint.comment||'Скоро вернёмся!')}</p>
+          </div>
+        </div>`;
+      return;
+    }
+  }
+
+  if(!sess&&path!=='login'){location.replace('#/login');return}
+  if(sess&&path==='login'){location.replace('#/index');return}
+  if(sess&&sess.user.blocked){clearSession();location.replace('#/login?reason=blocked');return}
+
   const fn=routes[path]||renderIndex;
   closeAllModals();
   window.scrollTo(0,0);
-  fn(params);
+  await fn(params);
 }
 
-window.addEventListener('hashchange',route);
+const routes={
+  'login':renderLogin,
+  'index':renderIndex,
+  'personal':renderPersonal,
+  'card':renderCard,
+  'account':renderAccount
+};
+
+window.addEventListener('hashchange',()=>route());
+
+/* Realtime-обновления: перерисовываем текущий экран */
+window._onRealtimeUpdate=function(node){
+  // Тихо — без мигания. Перерисовку сделаем вручную в нужных местах через location.reload нежелателен.
+};
 
 /* ============================================================
-   Общий каркас страниц с меню
+   ОБЩИЙ КАРКАС
    ============================================================ */
-function shell(activePage, bodyHTML){
+function shell(activePage,bodyHTML){
   const sess=getSession();
   const me=sess?sess.user:null;
   const chip=me?(me.avatar?`<img src="${me.avatar}" alt=""> <span>${esc(me.lastname||me.fio)}</span>`:`<span>${esc(me.lastname||me.fio)}</span>`):'';
@@ -687,15 +1203,14 @@ function bindShell(activePage){
   overlay.addEventListener('click',close);
   drawer.querySelectorAll('[data-nav]').forEach(a=>{
     if(a.dataset.nav===activePage)a.classList.add('active');
-    a.addEventListener('click',e=>{
-      e.preventDefault();
-      close();
-      navigate(a.dataset.nav);
-    });
+    a.addEventListener('click',e=>{e.preventDefault();close();navigate(a.dataset.nav)});
   });
   const lo=drawer.querySelector('[data-logout]');
-  if(lo)lo.addEventListener('click',e=>{
+  if(lo)lo.addEventListener('click',async e=>{
     e.preventDefault();
+    const mySess=ssGet(SS.adminSessionId,null);
+    if(mySess)await releaseAdminSession(mySess);
+    ssDel(SS.adminSessionId);
     clearSession();
     navigate('login',{reason:'logout'});
   });
@@ -704,14 +1219,11 @@ function bindShell(activePage){
 /* ============================================================
    ЭКРАН ВХОДА / РЕГИСТРАЦИИ / PIN
    ============================================================ */
-function renderLogin(params){
+async function renderLogin(params){
   const remembered=lsGet(LS.remembered,null);
   let rememberedUser=null;
   if(remembered&&remembered.userId)rememberedUser=getUserById(remembered.userId);
-
   const reason=params.get('reason');
-
-  // Автостарт: если есть запомненный пользователь — PIN-экран
   const showPin=!!rememberedUser;
 
   document.getElementById('app').innerHTML=`
@@ -756,6 +1268,7 @@ function renderLogin(params){
         <form id="loginForm" novalidate>
           ${reason==='idle'?'<div class="badge red" style="display:block;margin-bottom:12px;padding:10px 14px;border-radius:10px">Сессия завершена из-за бездействия.</div>':''}
           ${reason==='logout'?'<div class="badge green" style="display:block;margin-bottom:12px;padding:10px 14px;border-radius:10px">Вы вышли из системы.</div>':''}
+          ${reason==='blocked'?'<div class="badge red" style="display:block;margin-bottom:12px;padding:10px 14px;border-radius:10px">Ваш аккаунт заблокирован администратором.</div>':''}
           <div class="field" id="f-login-email">
             <label>Email</label>
             <input type="email" id="loginEmail" placeholder="you@gmail.com" autocomplete="email">
@@ -795,9 +1308,7 @@ function renderLogin(params){
         </form>
       </div>
     </div>
-  </div>
-  <div id="toastWrap" class="toast-wrap"></div>
-  `;
+  </div>`;
 
   const pinScreen=document.getElementById('pinScreen');
   const fullScreen=document.getElementById('fullScreen');
@@ -805,52 +1316,62 @@ function renderLogin(params){
   let pinBuf='';
 
   function showPinUI(){
-    pinScreen.style.display='block';
-    fullScreen.style.display='none';
+    pinScreen.style.display='block';fullScreen.style.display='none';
     if(rememberedUser){
       const ava=document.getElementById('pinAva');
       if(rememberedUser.avatar)ava.innerHTML=`<img src="${rememberedUser.avatar}" alt="">`;
       else ava.textContent=initials(rememberedUser.fio);
       document.getElementById('pinName').textContent=rememberedUser.fio;
     }
-    updateDots();
-    updateLock();
+    updateDots();updateLock();
   }
   function showFullUI(){
-    pinScreen.style.display='none';
-    fullScreen.style.display='block';
-    const toPin=document.getElementById('toPinFromFull');
-    if(toPin)toPin.style.display=rememberedUser?'inline-block':'none';
+    pinScreen.style.display='none';fullScreen.style.display='block';
+    const t=document.getElementById('toPinFromFull');
+    if(t)t.style.display=rememberedUser?'inline-block':'none';
   }
-  function updateDots(){
-    document.querySelectorAll('#pinDots .dot').forEach((d,i)=>d.classList.toggle('filled',i<pinBuf.length));
-  }
+  function updateDots(){document.querySelectorAll('#pinDots .dot').forEach((d,i)=>d.classList.toggle('filled',i<pinBuf.length))}
   function updateLock(){
     const locked=pinAttempts>=3;
     document.getElementById('pinLocked').style.display=locked?'block':'none';
     document.getElementById('pinPad').style.display=locked?'none':'grid';
   }
-  function shakeDots(){
-    const d=document.getElementById('pinDots');
-    d.classList.add('shake');
-    setTimeout(()=>d.classList.remove('shake'),450);
-  }
-  function setFieldError(fId,msg){
-    const f=document.getElementById(fId);
-    if(f){f.classList.add('error');const m=f.querySelector('.err-msg');if(m)m.textContent=msg}
-  }
+  function shakeDots(){const d=document.getElementById('pinDots');d.classList.add('shake');setTimeout(()=>d.classList.remove('shake'),450)}
+  function setFieldError(fId,msg){const f=document.getElementById(fId);if(f){f.classList.add('error');const m=f.querySelector('.err-msg');if(m)m.textContent=msg}}
   function clearErrors(){document.querySelectorAll('.field.error').forEach(f=>f.classList.remove('error'))}
   function showMsg(elId,text,type){
-    const el=document.getElementById(elId);
-    if(!el)return;
+    const el=document.getElementById(elId);if(!el)return;
     el.innerHTML=text?`<div class="badge ${type==='err'?'red':'green'}" style="display:block;margin-bottom:12px;padding:10px 14px;border-radius:10px">${esc(text)}</div>`:'';
+  }
+
+  async function doLoginSuccess(user){
+    setSession(user.id);
+    ssDel(SS.pinFail);
+
+    // Захват сессии админа
+    if(user.role==='admin'){
+      const mySess=uid();
+      ssSet(SS.adminSessionId,mySess);
+      try{
+        await claimAdminSession(mySess);
+      }catch(e){
+        clearSession();
+        ssDel(SS.adminSessionId);
+        toast(e.message,'err');
+        showFullUI();
+        return;
+      }
+    }
+
+    const firstName=user.name||user.lastname||(user.fio||'').split(' ')[0]||'друг';
+    await showLoadingScreen(firstName);
+    navigate('index');
   }
 
   if(showPin)showPinUI();
 
-  document.getElementById('pinPad').addEventListener('click',e=>{
-    const b=e.target.closest('button');
-    if(!b)return;
+  document.getElementById('pinPad').addEventListener('click',async e=>{
+    const b=e.target.closest('button');if(!b)return;
     const k=b.dataset.k;
     if(k==='switch'){showFullUI();return}
     if(k==='del'){pinBuf=pinBuf.slice(0,-1);updateDots();return}
@@ -861,27 +1382,25 @@ function renderLogin(params){
       const pin=pinBuf;
       if(!rememberedUser||!rememberedUser.pin){shakeDots();pinBuf='';updateDots();return}
       if(verifyHash(pin,rememberedUser.pin.salt,rememberedUser.pin.hash)){
-        if(!isApproved(rememberedUser)){
+        if(!isApproved(rememberedUser)||rememberedUser.blocked){
           shakeDots();
-          showMsg('loginMsg','Ваша заявка ещё на рассмотрении администратором.','err');
+          showMsg('loginMsg',rememberedUser.blocked?'Аккаунт заблокирован администратором.':'Заявка ещё на рассмотрении.','err');
           pinBuf='';updateDots();
           return;
         }
-        setSession(rememberedUser.id);
-        ssDel(SS.pinFail);
-        navigate('index');
+        await doLoginSuccess(rememberedUser);
       }else{
         shakeDots();
-        pinAttempts++;
-        ssSet(SS.pinFail,pinAttempts);
+        pinAttempts++;ssSet(SS.pinFail,pinAttempts);
         pinBuf='';updateDots();updateLock();
         if(pinAttempts>=3)toast('Быстрый вход заблокирован. Выполните полный вход.','err');
       }
     }
   });
+
   document.getElementById('toFullFromPin').addEventListener('click',showFullUI);
-  const toPin=document.getElementById('toPinFromFull');
-  if(toPin)toPin.addEventListener('click',showPinUI);
+  const tp=document.getElementById('toPinFromFull');
+  if(tp)tp.addEventListener('click',showPinUI);
 
   document.getElementById('authTabs').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
@@ -890,8 +1409,7 @@ function renderLogin(params){
     document.getElementById('regForm').style.display=b.dataset.tab==='register'?'block':'none';
   });
 
-  /* Полный вход */
-  document.getElementById('loginForm').addEventListener('submit',e=>{
+  document.getElementById('loginForm').addEventListener('submit',async e=>{
     e.preventDefault();
     clearErrors();showMsg('loginMsg','');
     const email=document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -901,20 +1419,22 @@ function renderLogin(params){
     else if(!isEmailGmail(email)){setFieldError('f-login-email','Email должен быть @gmail.com.');err=true}
     if(!pass){setFieldError('f-login-pass','Введите пароль.');err=true}
     if(err)return;
+
+    // Пытаемся сначала подтянуть свежие данные из Firebase
+    try{await syncFromFirebase()}catch(e){}
+
     const u=getUserByEmail(email);
     if(!u){showMsg('loginMsg','Пользователь с таким email не найден.','err');return}
     if(!verifyHash(pass,u.pass.salt,u.pass.hash)){showMsg('loginMsg','Неверный пароль.','err');return}
+    if(u.blocked){showMsg('loginMsg','Аккаунт заблокирован администратором.','err');return}
     if(!isApproved(u)){
       showMsg('loginMsg',u.status==='pending'?'Ваша заявка ещё на рассмотрении администратором.':'Ваша заявка отклонена.','err');
       return;
     }
-    setSession(u.id);
-    ssDel(SS.pinFail);
-    navigate('index');
+    await doLoginSuccess(u);
   });
 
-  /* Регистрация */
-  document.getElementById('regForm').addEventListener('submit',e=>{
+  document.getElementById('regForm').addEventListener('submit',async e=>{
     e.preventDefault();
     clearErrors();showMsg('regMsg','');
     const lastname=document.getElementById('regLastname').value.trim();
@@ -941,18 +1461,18 @@ function renderLogin(params){
     const users=getUsers();
     const isFirst=users.length===0;
     const u={
-      id:uid(),
-      lastname,name,patronymic,
+      id:uid(),lastname,name,patronymic,
       fio:`${lastname} ${name} ${patronymic}`,
       email,
-      pass:makeHash(pass),
-      pin:makeHash(pin),
+      pass:makeHash(pass),pin:makeHash(pin),
       avatar:'',
       role:isFirst?'admin':'member',
       status:isFirst?'active':'pending',
+      blocked:false,
       createdAt:nowISO()
     };
     users.push(u);saveUsers(users);
+    if(_fbReady)await fbSet('users/'+u.id,u);
 
     if(isFirst){
       showMsg('regMsg','Администратор зарегистрирован! Войдите.','ok');
@@ -969,12 +1489,12 @@ function renderLogin(params){
 }
 
 /* ============================================================
-   ГЛАВНАЯ
+   ГЛАВНАЯ (с панелью админа)
    ============================================================ */
-function renderIndex(){
-  const sess=getSession();
-  if(!sess)return;
+async function renderIndex(){
+  const sess=getSession();if(!sess)return;
   const me=sess.user;
+  const isAdmin=me.role==='admin';
 
   document.getElementById('app').innerHTML=shell('index',`
     <h2 class="page-title">Главная</h2>
@@ -993,60 +1513,120 @@ function renderIndex(){
       <div class="empty-note" id="opsEmpty" style="display:none">Пока нет операций</div>
     </div>
 
-    <div class="modal-overlay" id="contribModal">
-      <div class="modal">
-        <button class="close-x" onclick="closeModal('contribModal')">✕</button>
-        <h3>Внести в казну</h3>
-        <div class="field"><label>Сумма (100–5000 ₽)</label><input type="number" id="contribAmount" min="100" max="5000" placeholder="500"></div>
-        <button class="btn green block" id="btnDoContribute">Внести</button>
+    ${isAdmin?`
+    <h3 class="section-title">⚙️ Панель администратора</h3>
+
+    <div class="card" style="padding:0">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--line);font-weight:600">
+        Заявки на рассмотрении
+      </div>
+      <div class="table-wrap">
+        <table class="tbl" id="adminReqsTable">
+          <thead><tr><th>Дата</th><th>Участник</th><th>Операция</th><th>Сумма</th><th>Действия</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="empty-note" id="adminReqsEmpty" style="display:none">Нет заявок</div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0">Режим технических работ</h4>
+      <div class="field">
+        <label>Комментарий</label>
+        <input type="text" id="maintComment" placeholder="Скоро вернёмся!">
+      </div>
+      <div class="btn-row">
+        <button class="btn red" id="btnMaintOn">Включить техработы</button>
+        <button class="btn green" id="btnMaintOff">Выключить</button>
+      </div>
+      <div class="text-muted mt-10" id="maintStatus">—</div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0">Общая казна</h4>
+      <div class="field"><label>Сумма (₽)</label><input type="number" id="admTreasAmount" min="1"></div>
+      <div class="btn-row">
+        <button class="btn green" id="btnAdmAddTreasury">Внести в казну</button>
+        <button class="btn red" id="btnAdmRemoveTreasury">Вынести из казны</button>
       </div>
     </div>
 
-    <div class="modal-overlay" id="loanModal">
-      <div class="modal">
-        <button class="close-x" onclick="closeModal('loanModal')">✕</button>
-        <h3>Взять заём</h3>
-        <div class="field">
-          <label>Сумма</label>
-          <input type="number" id="loanAmount" min="1" placeholder="Сумма">
-          <div class="hint" id="loanHint"></div>
-        </div>
-        <button class="btn block" id="btnDoLoan">Взять</button>
+    <div class="card">
+      <h4 style="margin-top:0">Управление участником</h4>
+      <div class="field">
+        <label>Участник</label>
+        <select id="admTargetUser"></select>
+      </div>
+      <div class="field"><label>Сумма (₽)</label><input type="number" id="admUserAmount" min="1"></div>
+      <div class="btn-row">
+        <button class="btn green small" id="btnAdmAddPersonal">Пополнить личный счёт</button>
+        <button class="btn small" id="btnAdmAddDebt">Ввести долг</button>
+        <button class="btn small" id="btnAdmCancelDebt">Аннулировать долг</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn red small" id="btnAdmBlockUser">Заблокировать аккаунт</button>
+        <button class="btn red small" id="btnAdmBlockCard">Заблокировать карту</button>
+        <button class="btn red small" id="btnAdmResetAccount">Сбросить счёт и долги</button>
       </div>
     </div>
+    `:''}
 
-    <div class="modal-overlay" id="returnModal">
-      <div class="modal">
-        <button class="close-x" onclick="closeModal('returnModal')">✕</button>
-        <h3>Вернуть заём</h3>
-        <div id="returnInfo" style="margin-bottom:14px"></div>
-        <button class="btn green block" id="btnDoReturn">Вернуть полностью</button>
+    <!-- Модалки пользователя -->
+    <div class="modal-overlay" id="contribModal"><div class="modal">
+      <button class="close-x" onclick="closeModal('contribModal')">✕</button>
+      <h3>Внести в казну</h3>
+      <div class="field"><label>Сумма (100–5000 ₽)</label><input type="number" id="contribAmount" min="100" max="5000" placeholder="500">
+        <div class="hint">Средства спишутся с личного счёта после одобрения админом.</div>
       </div>
-    </div>
+      <button class="btn green block" id="btnDoContribute">Отправить заявку</button>
+    </div></div>
 
-    <div class="modal-overlay" id="memberModal">
-      <div class="modal">
-        <button class="close-x" onclick="closeModal('memberModal')">✕</button>
-        <h3 id="mmTitle">Участник</h3>
-        <div id="mmBody"></div>
+    <div class="modal-overlay" id="loanModal"><div class="modal">
+      <button class="close-x" onclick="closeModal('loanModal')">✕</button>
+      <h3>Взять заём</h3>
+      <div class="field"><label>Сумма</label><input type="number" id="loanAmount" min="1" placeholder="Сумма">
+        <div class="hint" id="loanHint"></div>
       </div>
-    </div>
+      <button class="btn block" id="btnDoLoan">Отправить заявку</button>
+    </div></div>
+
+    <div class="modal-overlay" id="returnModal"><div class="modal">
+      <button class="close-x" onclick="closeModal('returnModal')">✕</button>
+      <h3>Вернуть заём</h3>
+      <div id="returnInfo" style="margin-bottom:14px"></div>
+      <button class="btn green block" id="btnDoReturn">Отправить заявку</button>
+    </div></div>
+
+    <div class="modal-overlay" id="memberModal"><div class="modal">
+      <button class="close-x" onclick="closeModal('memberModal')">✕</button>
+      <h3 id="mmTitle">Участник</h3>
+      <div id="mmBody"></div>
+    </div></div>
+
+    <!-- Модалка комментария админа -->
+    <div class="modal-overlay" id="commentModal"><div class="modal">
+      <button class="close-x" onclick="closeModal('commentModal')">✕</button>
+      <h3>Комментарий</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin:14px 0">
+        <label><input type="radio" name="cmt" value="ok"> Успешно.</label>
+        <label><input type="radio" name="cmt" value="noMoney"> Недостаточно средств.</label>
+        <label><input type="radio" name="cmt" value="noCard"> Ваша карта заблокирована или не оформлен личный счёт, операция была отклонена.</label>
+      </div>
+      <button class="btn green block" id="btnCommentConfirm">Подтвердить</button>
+    </div></div>
   `);
 
-  bindShell('index');
-  startIdle();
-
+  bindShell('index');startIdle();
   const $=id=>document.getElementById(id);
+  let currentReturn=null;
 
   function renderTreasury(){
-    const bal=getTreasuryBalance();
-    $('treasuryAmount').textContent=fmtMoney(bal);
+    $('treasuryAmount').textContent=fmtMoney(getTreasuryBalance());
     $('treasurySub').textContent=`Участников: ${getUsers().filter(isApproved).length}`;
   }
 
   function renderMembers(){
-    const grid=$('membersGrid');
-    grid.innerHTML='';
+    const grid=$('membersGrid');grid.innerHTML='';
     getUsers().filter(isApproved).forEach((u,idx)=>{
       const contributed=getUserContributed(u.id);
       const loan=getActiveLoan(u.id);
@@ -1055,15 +1635,14 @@ function renderIndex(){
       el.style.animationDelay=(idx*0.06)+'s';
       let debt='<div class="mdebt none">без долга</div>';
       if(loan){
-        const total=loan.amount+Math.round(loan.amount*loan.percent/100);
+        const total=loan.amount+Math.round(loan.amount*(loan.percent||0)/100);
         debt=`<div class="mdebt">долг ${fmtMoney(total)}</div>`;
       }
       el.innerHTML=`
         <div class="ava">${u.avatar?`<img src="${u.avatar}" alt="">`:esc(initials(u.fio))}</div>
         <div class="mname">${esc(u.name||u.lastname||u.email)}</div>
         <div class="mcontrib">${fmtMoney(contributed)}</div>
-        ${debt}
-      `;
+        ${debt}`;
       el.addEventListener('click',()=>openMember(u.id));
       grid.appendChild(el);
     });
@@ -1076,25 +1655,26 @@ function renderIndex(){
     const isMe=u.id===me.id;
     let loanHtml='<p class="text-muted">Активного займа нет.</p>';
     if(loan){
-      const total=loan.amount+Math.round(loan.amount*loan.percent/100);
+      const total=loan.amount+Math.round(loan.amount*(loan.percent||0)/100);
       const overdue=new Date(loan.dueDate)<new Date();
       loanHtml=`<div class="card" style="box-shadow:none;background:#f7fbff;padding:14px">
         <div><b>Сумма:</b> ${fmtMoney(loan.amount)}</div>
-        <div><b>Процент:</b> ${loan.percent}%</div>
+        <div><b>Процент:</b> ${loan.percent||0}%</div>
         <div><b>К возврату:</b> ${fmtMoney(total)}</div>
         <div><b>Срок:</b> ${fmtDate(loan.dueDate)} ${overdue?'<span class="badge red" style="margin-left:6px">просрочен</span>':''}</div>
       </div>`;
     }
     $('mmTitle').textContent=u.fio;
     const body=$('mmBody');
+    const personalBal=isMe?fmtMoney(getPersonalBalance(u.id)):'скрыто';
     body.innerHTML=`
       <div style="margin-bottom:10px">
         <span class="badge blue">вклад: ${fmtMoney(contributed)}</span>
         ${loan?'<span class="badge red" style="margin-left:6px">долг</span>':'<span class="badge green" style="margin-left:6px">без долга</span>'}
       </div>
+      <div class="text-muted">Личный счёт: ${personalBal}</div>
       <h4 style="margin:14px 0 6px">Активный заём</h4>
-      ${loanHtml}
-    `;
+      ${loanHtml}`;
     if(isMe){
       const row=document.createElement('div');row.className='btn-row';
       const bC=document.createElement('button');bC.className='btn green small';bC.textContent='Внести в казну';
@@ -1105,7 +1685,7 @@ function renderIndex(){
         bL.addEventListener('click',()=>{
           closeModal('memberModal');
           const max=getTreasuryBalance();
-          $('loanHint').textContent=`Доступно в казне: ${fmtMoney(max)}. Процент ${LOAN_PERCENT}%, срок ${LOAN_TERM_DAYS} дней.`;
+          $('loanHint').textContent=`Доступно в казне: ${fmtMoney(max)}. Процент ${LOAN_PERCENT}%, срок ${LOAN_TERM_DAYS} дней. Деньги займа поступят на личный счёт.`;
           $('loanAmount').value='';
           openModal('loanModal');
         });
@@ -1115,8 +1695,9 @@ function renderIndex(){
         bR.addEventListener('click',()=>{
           closeModal('memberModal');
           currentReturn=loan;
-          const total=loan.amount+Math.round(loan.amount*loan.percent/100);
-          $('returnInfo').innerHTML=`К возврату: <b>${fmtMoney(total)}</b><br><span class="text-muted">заём ${fmtMoney(loan.amount)} + ${loan.percent}%</span>`;
+          const total=loan.amount+Math.round(loan.amount*(loan.percent||0)/100);
+          const bal=getPersonalBalance(me.id);
+          $('returnInfo').innerHTML=`К возврату: <b>${fmtMoney(total)}</b><br><span class="text-muted">заём ${fmtMoney(loan.amount)} + ${loan.percent||0}%</span><br><span class="text-muted">На личном счёте: ${fmtMoney(bal)}</span>`;
           openModal('returnModal');
         });
         row.appendChild(bR);
@@ -1126,56 +1707,46 @@ function renderIndex(){
     openModal('memberModal');
   }
 
-  let currentReturn=null;
-
-  $('btnDoContribute').addEventListener('click',()=>{
+  $('btnDoContribute').addEventListener('click',async()=>{
     const v=Number($('contribAmount').value);
     if(!isFinite(v)||v<100||v>5000){toast('Сумма должна быть от 100 до 5000 ₽.','err');return}
-    addOp({type:'contribute',userId:me.id,userName:me.fio,amount:v});
-    closeModal('contribModal');
-    toast('Внесено '+fmtMoney(v)+' в казну.','ok');
-    renderAll();
+    const bal=getPersonalBalance(me.id);
+    if(v>bal){toast('Сначала положите деньги на личный счёт. Доступно: '+fmtMoney(bal),'err');return}
+    try{
+      await createRequest(REQ_TYPE.CONTRIBUTE,{amount:v});
+      closeModal('contribModal');
+    }catch(e){toast(e.message,'err')}
   });
 
-  $('btnDoLoan').addEventListener('click',()=>{
+  $('btnDoLoan').addEventListener('click',async()=>{
     const v=Number($('loanAmount').value);
-    const t=getTreasuryBalance();
     if(!isFinite(v)||v<=0){toast('Некорректная сумма.','err');return}
-    if(v>t){toast('Нельзя занять больше, чем в казне ('+fmtMoney(t)+').','err');return}
-    if(getActiveLoan(me.id)){toast('У вас уже есть активный заём.','err');return}
-    const due=new Date();due.setDate(due.getDate()+LOAN_TERM_DAYS);
-    const loans=getLoans();
-    loans.push({id:uid(),userId:me.id,userName:me.fio,amount:v,percent:LOAN_PERCENT,takenAt:nowISO(),dueDate:due.toISOString(),status:'active'});
-    saveLoans(loans);
-    addOp({type:'loan_out',userId:me.id,userName:me.fio,amount:v});
-    closeModal('loanModal');
-    toast('Заём '+fmtMoney(v)+' выдан до '+fmtDate(due.toISOString())+'.','ok');
-    renderAll();
+    try{
+      await createRequest(REQ_TYPE.TAKE_LOAN,{amount:v});
+      closeModal('loanModal');
+    }catch(e){toast(e.message,'err')}
   });
 
-  $('btnDoReturn').addEventListener('click',()=>{
+  $('btnDoReturn').addEventListener('click',async()=>{
     if(!currentReturn)return;
     const loan=currentReturn;
-    const total=loan.amount+Math.round(loan.amount*loan.percent/100);
-    const loans=getLoans();
-    const l=loans.find(x=>x.id===loan.id);
-    if(l){l.status='returned';l.returnedAt=nowISO()}
-    saveLoans(loans);
-    addOp({type:'loan_return',userId:me.id,userName:me.fio,amount:total});
-    currentReturn=null;
-    closeModal('returnModal');
-    toast('Заём возвращён. В казну поступило '+fmtMoney(total)+'.','ok');
-    renderAll();
+    const total=loan.amount+Math.round(loan.amount*(loan.percent||0)/100);
+    const bal=getPersonalBalance(me.id);
+    if(total>bal){toast('Недостаточно на личном счёте. Нужно: '+fmtMoney(total)+', доступно: '+fmtMoney(bal),'err');return}
+    try{
+      await createRequest(REQ_TYPE.RETURN_LOAN,{amount:total});
+      currentReturn=null;
+      closeModal('returnModal');
+    }catch(e){toast(e.message,'err')}
   });
 
   function renderOps(){
     const tbody=document.querySelector('#opsTable tbody');
-    const ops=getOps().slice().reverse();
+    const filtered=getOps().slice().reverse().filter(o=>['contribute','loan_out','loan_return','personal_to_treasury','admin_treasury_out'].includes(o.type));
     tbody.innerHTML='';
-    const filtered=ops.filter(o=>['contribute','loan_out','loan_return','personal_to_treasury'].includes(o.type));
     if(!filtered.length){$('opsEmpty').style.display='block';$('opsTable').style.display='none';return}
     $('opsEmpty').style.display='none';$('opsTable').style.display='table';
-    const labels={contribute:'Взнос в казну',loan_out:'Выдача займа',loan_return:'Возврат займа',personal_to_treasury:'Перевод с личного'};
+    const labels={contribute:'Взнос в казну',loan_out:'Выдача займа',loan_return:'Возврат займа',personal_to_treasury:'Перевод с личного',admin_treasury_out:'Изъятие из казны (админ)'};
     filtered.forEach(op=>{
       const tr=document.createElement('tr');
       const sign=(op.type==='contribute'||op.type==='loan_return'||op.type==='personal_to_treasury')?'+':'−';
@@ -1185,19 +1756,152 @@ function renderIndex(){
     });
   }
 
-  function renderAll(){renderTreasury();renderMembers();renderOps()}
+  /* ===== Админ-панель ===== */
+  let _commentCtx=null;
+  function renderAdminReqs(){
+    const tbody=document.querySelector('#adminReqsTable tbody');
+    if(!tbody)return;
+    const reqs=getRequests().filter(r=>r.status==='pending').reverse();
+    tbody.innerHTML='';
+    if(!reqs.length){$('adminReqsEmpty').style.display='block';$('adminReqsTable').style.display='none';return}
+    $('adminReqsEmpty').style.display='none';$('adminReqsTable').style.display='table';
+    reqs.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${fmtDateTime(r.createdAt)}</td>
+        <td>${esc(r.userName)}</td>
+        <td>${REQ_LABELS[r.type]||r.type}</td>
+        <td>${r.payload&&r.payload.amount?fmtMoney(r.payload.amount):'—'}</td>
+        <td>
+          <button class="btn green small" data-ap="${r.id}">✔</button>
+          <button class="btn red small" data-rj="${r.id}" style="margin-left:4px">✖</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click',()=>{
+      _commentCtx={reqId:b.dataset.ap,action:'approve'};
+      document.querySelectorAll('input[name="cmt"]').forEach(r=>r.checked=false);
+      document.querySelector('input[name="cmt"][value="ok"]').checked=true;
+      openModal('commentModal');
+    }));
+    tbody.querySelectorAll('[data-rj]').forEach(b=>b.addEventListener('click',()=>{
+      _commentCtx={reqId:b.dataset.rj,action:'reject'};
+      document.querySelectorAll('input[name="cmt"]').forEach(r=>r.checked=false);
+      document.querySelector('input[name="cmt"][value="noMoney"]').checked=true;
+      openModal('commentModal');
+    }));
+  }
+  document.addEventListener('click',async e=>{
+    if(e.target.id!=='btnCommentConfirm')return;
+    const val=document.querySelector('input[name="cmt"]:checked').value;
+    const ctx=_commentCtx;
+    if(!ctx)return;
+    closeModal('commentModal');
+    try{
+      if(ctx.action==='approve')await approveRequest(ctx.reqId,val);
+      else await rejectRequest(ctx.reqId,val);
+      renderAll();
+    }catch(err){toast(err.message,'err')}
+  });
+
+  if(isAdmin){
+    // Участники в select
+    const sel=$('admTargetUser');
+    if(sel){
+      getUsers().filter(u=>u.id!==me.id).forEach(u=>{
+        const opt=document.createElement('option');
+        opt.value=u.id;opt.textContent=u.fio;
+        sel.appendChild(opt);
+      });
+    }
+
+    // Техработы
+    async function updateMaintStatus(){
+      const m=await getMaintenance();
+      $('maintStatus').textContent=m&&m.enabled?'⚠️ Включены: '+(m.comment||''):'✅ Выключены';
+    }
+    updateMaintStatus();
+
+    $('btnMaintOn').addEventListener('click',async()=>{
+      const c=$('maintComment').value.trim()||'Скоро вернёмся!';
+      await setMaintenanceMode(true,c);
+      toast('Техработы включены.','ok');
+      updateMaintStatus();
+    });
+    $('btnMaintOff').addEventListener('click',async()=>{
+      await setMaintenanceMode(false,'');
+      toast('Техработы выключены.','ok');
+      updateMaintStatus();
+    });
+
+    // Казна
+    $('btnAdmAddTreasury').addEventListener('click',async()=>{
+      try{await adminAction(REQ_TYPE.ADMIN_ADD_TREASURY,{amount:Number($('admTreasAmount').value)});renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+    $('btnAdmRemoveTreasury').addEventListener('click',async()=>{
+      try{await adminAction(REQ_TYPE.ADMIN_REMOVE_TREASURY,{amount:Number($('admTreasAmount').value)});renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+
+    // Участник
+    const getTarget=()=>{
+      const id=$('admTargetUser').value;const u=getUserById(id);
+      return u?{targetUserId:u.id,targetUserName:u.fio}:null;
+    };
+    $('btnAdmAddPersonal').addEventListener('click',async()=>{
+      const t=getTarget();if(!t)return;
+      try{await adminAction(REQ_TYPE.ADMIN_ADD_PERSONAL,{...t,amount:Number($('admUserAmount').value)});renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+    $('btnAdmAddDebt').addEventListener('click',async()=>{
+      const t=getTarget();if(!t)return;
+      try{await adminAction(REQ_TYPE.ADMIN_ADD_DEBT,{...t,amount:Number($('admUserAmount').value)});renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+    $('btnAdmCancelDebt').addEventListener('click',async()=>{
+      const t=getTarget();if(!t)return;
+      try{await adminAction(REQ_TYPE.ADMIN_CANCEL_DEBT,t);renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+    $('btnAdmBlockUser').addEventListener('click',async()=>{
+      const t=getTarget();if(!t)return;
+      if(!confirm('Заблокировать аккаунт?'))return;
+      try{await adminAction(REQ_TYPE.ADMIN_BLOCK_USER,t);renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+    $('btnAdmBlockCard').addEventListener('click',async()=>{
+      const t=getTarget();if(!t)return;
+      try{await adminAction(REQ_TYPE.ADMIN_BLOCK_CARD,t);renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+    $('btnAdmResetAccount').addEventListener('click',async()=>{
+      const t=getTarget();if(!t)return;
+      if(!confirm('Сбросить личный счёт и все долги?'))return;
+      try{await adminAction(REQ_TYPE.ADMIN_RESET_ACCOUNT,t);renderAll()}
+      catch(e){toast(e.message,'err')}
+    });
+  }
+
+  function renderAll(){
+    renderTreasury();renderMembers();renderOps();
+    if(isAdmin)renderAdminReqs();
+  }
   renderAll();
 }
 
 /* ============================================================
    ЛИЧНЫЙ СЧЁТ
    ============================================================ */
-function renderPersonal(){
+async function renderPersonal(){
   const sess=getSession();if(!sess)return;
   const me=sess.user;
 
   document.getElementById('app').innerHTML=shell('personal',`
     <h2 class="page-title">Личный счёт</h2>
+    <div id="pendingNote" class="card center" style="display:none;background:#fff9e5">
+      <div class="badge blue">Есть заявка на рассмотрении</div>
+    </div>
     <div id="noAccount" class="card center" style="display:none">
       <p>У вас пока нет личного счёта.</p>
       <button class="btn" id="btnOpenAccount">Открыть личный счёт</button>
@@ -1223,21 +1927,21 @@ function renderPersonal(){
       <button class="close-x" onclick="closeModal('depositModal')">✕</button>
       <h3>Положить на личный счёт</h3>
       <div class="field"><label>Сумма (₽)</label><input type="number" id="depositAmount" min="1" placeholder="Сумма"></div>
-      <button class="btn green block" id="btnDoDeposit">Пополнить</button>
+      <button class="btn green block" id="btnDoDeposit">Отправить заявку</button>
     </div></div>
 
     <div class="modal-overlay" id="withdrawModal"><div class="modal">
       <button class="close-x" onclick="closeModal('withdrawModal')">✕</button>
       <h3>Снять с личного счёта</h3>
       <div class="field"><label>Сумма (₽)</label><input type="number" id="withdrawAmount" min="1" placeholder="Сумма"><div class="hint" id="withdrawHint"></div></div>
-      <button class="btn red block" id="btnDoWithdraw">Снять</button>
+      <button class="btn red block" id="btnDoWithdraw">Отправить заявку</button>
     </div></div>
 
     <div class="modal-overlay" id="toTreasuryModal"><div class="modal">
       <button class="close-x" onclick="closeModal('toTreasuryModal')">✕</button>
       <h3>Перевести в общую казну</h3>
       <div class="field"><label>Сумма (₽)</label><input type="number" id="toTreasuryAmount" min="1" placeholder="Сумма"><div class="hint" id="toTreasuryHint"></div></div>
-      <button class="btn block" id="btnDoToTreasury">Перевести</button>
+      <button class="btn block" id="btnDoToTreasury">Отправить заявку</button>
     </div></div>
   `);
 
@@ -1247,28 +1951,30 @@ function renderPersonal(){
   function hasAccount(){
     return getOps().some(o=>o.userId===me.id&&['personal_deposit','personal_withdraw','personal_to_treasury'].includes(o.type));
   }
+  function hasPending(){
+    return getRequests().some(r=>r.userId===me.id&&r.status==='pending'&&
+      ['personal_deposit','personal_withdraw','personal_to_treasury','contribute_to_treasury'].includes(r.type));
+  }
   function render(){
     if(!hasAccount()){
-      $('noAccount').style.display='block';
-      $('accountBox').style.display='none';
-      return;
+      $('noAccount').style.display='block';$('accountBox').style.display='none';
+    }else{
+      $('noAccount').style.display='none';$('accountBox').style.display='block';
+      $('personalBalance').textContent=fmtMoney(getPersonalBalance(me.id));
+      renderOps();
     }
-    $('noAccount').style.display='none';
-    $('accountBox').style.display='block';
-    $('personalBalance').textContent=fmtMoney(getPersonalBalance(me.id));
-    renderOps();
+    $('pendingNote').style.display=hasPending()?'block':'none';
   }
   function renderOps(){
     const ops=getOps().filter(o=>o.userId===me.id&&['personal_deposit','personal_withdraw','personal_to_treasury'].includes(o.type)).reverse();
-    const tbody=document.querySelector('#personalOpsTable tbody');
-    tbody.innerHTML='';
+    const tbody=document.querySelector('#personalOpsTable tbody');tbody.innerHTML='';
     if(!ops.length){$('personalOpsEmpty').style.display='block';$('personalOpsTable').style.display='none';return}
     $('personalOpsEmpty').style.display='none';$('personalOpsTable').style.display='table';
     const labels={personal_deposit:'Пополнение',personal_withdraw:'Снятие',personal_to_treasury:'Перевод в казну'};
     ops.forEach(op=>{
       const isIn=op.type==='personal_deposit';
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${fmtDateTime(op.ts)}</td><td>${labels[op.type]}</td><td class="${isIn?'amt-in':'amt-out'}">${isIn?'+':'−'} ${fmtMoney(op.amount)}</td>`;
+      tr.innerHTML=`<td>${fmtDateTime(op.ts)}</td><td>${labels[op.type]||op.type}</td><td class="${isIn?'amt-in':'amt-out'}">${isIn?'+':'−'} ${fmtMoney(op.amount)}</td>`;
       tbody.appendChild(tr);
     });
   }
@@ -1284,33 +1990,23 @@ function renderPersonal(){
     $('toTreasuryAmount').value='';openModal('toTreasuryModal');
   });
 
-  $('btnDoDeposit').addEventListener('click',()=>{
+  $('btnDoDeposit').addEventListener('click',async()=>{
     const v=Number($('depositAmount').value);
     if(!isFinite(v)||v<=0){toast('Введите корректную сумму.','err');return}
-    addOp({type:'personal_deposit',userId:me.id,userName:me.fio,amount:v});
-    closeModal('depositModal');
-    toast('Пополнено '+fmtMoney(v)+'.','ok');
-    render();
+    try{await createRequest(REQ_TYPE.PERSONAL_DEPOSIT,{amount:v});closeModal('depositModal');render()}
+    catch(e){toast(e.message,'err')}
   });
-  $('btnDoWithdraw').addEventListener('click',()=>{
+  $('btnDoWithdraw').addEventListener('click',async()=>{
     const v=Number($('withdrawAmount').value);
-    const b=getPersonalBalance(me.id);
     if(!isFinite(v)||v<=0){toast('Введите корректную сумму.','err');return}
-    if(v>b){toast('Недостаточно. Доступно: '+fmtMoney(b)+'.','err');return}
-    addOp({type:'personal_withdraw',userId:me.id,userName:me.fio,amount:v});
-    closeModal('withdrawModal');
-    toast('Снято '+fmtMoney(v)+'.','ok');
-    render();
+    try{await createRequest(REQ_TYPE.PERSONAL_WITHDRAW,{amount:v});closeModal('withdrawModal');render()}
+    catch(e){toast(e.message,'err')}
   });
-  $('btnDoToTreasury').addEventListener('click',()=>{
+  $('btnDoToTreasury').addEventListener('click',async()=>{
     const v=Number($('toTreasuryAmount').value);
-    const b=getPersonalBalance(me.id);
     if(!isFinite(v)||v<=0){toast('Введите корректную сумму.','err');return}
-    if(v>b){toast('Недостаточно. Доступно: '+fmtMoney(b)+'.','err');return}
-    addOp({type:'personal_to_treasury',userId:me.id,userName:me.fio,amount:v});
-    closeModal('toTreasuryModal');
-    toast('Переведено в казну '+fmtMoney(v)+'.','ok');
-    render();
+    try{await createRequest(REQ_TYPE.PERSONAL_TO_TREASURY,{amount:v});closeModal('toTreasuryModal');render()}
+    catch(e){toast(e.message,'err')}
   });
 
   render();
@@ -1319,12 +2015,15 @@ function renderPersonal(){
 /* ============================================================
    КАРТА
    ============================================================ */
-function renderCard(){
+async function renderCard(){
   const sess=getSession();if(!sess)return;
   const me=sess.user;
 
   document.getElementById('app').innerHTML=shell('card',`
     <h2 class="page-title">Карта участника</h2>
+    <div id="pendingCardNote" class="card center" style="display:none;background:#fff9e5">
+      <div class="badge blue">Заявка на карту на рассмотрении</div>
+    </div>
     <div id="noCard" class="card center" style="display:none">
       <p>У вас ещё нет карты участника кассы.</p>
       <button class="btn" id="btnIssueCard">Оформить карту</button>
@@ -1340,22 +2039,22 @@ function renderCard(){
           <div class="card-cvv">Код: <b id="cardCode">000</b></div>
         </div>
       </div>
-      <div class="btn-row"><button class="btn red" id="btnBlockCard">Заблокировать карту</button></div>
+      <div class="btn-row"><button class="btn red" id="btnBlockCard">Запросить блокировку</button></div>
       <p class="text-muted mt-10">Карта — удостоверение участника кассы, не платёжный инструмент.</p>
     </div>
 
-    <div id="adminPanel" style="display:none">
+    ${me.role==='admin'?`
+    <div id="adminPanel">
       <h3 class="section-title">Отделение: вход по карте</h3>
       <div class="card">
-        <p class="text-muted">Отсканируйте QR-код или введите номер и трёхзначный код.</p>
+        <p class="text-muted">Отсканируйте QR или введите номер и трёхзначный код.</p>
         <div class="row-2">
           <div class="field"><label>Номер карты (10 цифр)</label><input type="text" id="scanNumber" maxlength="10" inputmode="numeric" placeholder="0000000000"></div>
           <div class="field"><label>Трёхзначный код</label><input type="text" id="scanCode" maxlength="3" inputmode="numeric" placeholder="000"></div>
         </div>
-        <button class="btn" id="btnScanCard">Открыть карточку участника</button>
-        <div id="scanResult" class="mt-16"></div>
+        <button class="btn" id="btnScanCard">Открыть карточку</button>
       </div>
-    </div>
+    </div>`:''}
 
     <div class="modal-overlay" id="adminOpsModal"><div class="modal">
       <button class="close-x" onclick="closeModal('adminOpsModal')">✕</button>
@@ -1379,87 +2078,67 @@ function renderCard(){
       $('cardCode').textContent=card.code;
       $('bankCard').classList.toggle('blocked',card.status==='blocked');
       drawQR($('qrSide'),JSON.stringify({n:card.number,c:card.code,f:me.fio.slice(0,20)}));
-      const bb=$('btnBlockCard');
-      bb.textContent=card.status==='blocked'?'Разблокировать карту':'Заблокировать карту';
-      bb.onclick=()=>{
-        const cards=getCards();const c=cards.find(x=>x.userId===me.id);
-        if(!c)return;
-        c.status=c.status==='blocked'?'active':'blocked';
-        saveCards(cards);
-        toast(c.status==='blocked'?'Карта заблокирована.':'Карта разблокирована.','ok');
-        render();
-      };
     }
-    if(me.role==='admin')$('adminPanel').style.display='block';
+    const hasPendingCard=getRequests().some(r=>r.userId===me.id&&r.status==='pending'&&['issue_card','block_card'].includes(r.type));
+    $('pendingCardNote').style.display=hasPendingCard?'block':'none';
   }
 
-  $('btnIssueCard').addEventListener('click',()=>{
-    if(getUserCard(me.id)){toast('Карта уже оформлена.','err');return}
-    const cards=getCards();
-    cards.push({id:uid(),userId:me.id,userName:me.fio,number:genCardNumber(),code:genCardCode(),status:'active',issuedAt:nowISO()});
-    saveCards(cards);
-    toast('Карта оформлена!','ok');
-    render();
+  $('btnIssueCard').addEventListener('click',async()=>{
+    try{await createRequest(REQ_TYPE.ISSUE_CARD,{});render()}
+    catch(e){toast(e.message,'err')}
+  });
+  $('btnBlockCard').addEventListener('click',async()=>{
+    try{await createRequest(REQ_TYPE.BLOCK_CARD,{});render()}
+    catch(e){toast(e.message,'err')}
   });
 
-  function adminDeposit(userId){
-    const u=getUserById(userId);if(!u)return;
-    const raw=prompt('Сумма взноса (100–5000 ₽):','500');
-    const v=Number(raw);
-    if(!isFinite(v)||v<100||v>5000){toast('Сумма должна быть от 100 до 5000 ₽.','err');return}
-    addOp({type:'contribute',userId:u.id,userName:u.fio,amount:v});
-    toast('Внесено '+fmtMoney(v)+' за '+u.fio+'.','ok');
-    closeModal('adminOpsModal');
-  }
-  function adminReturn(userId){
-    const loan=getActiveLoan(userId);
-    if(!loan){toast('Нет активного займа.','err');return}
-    const u=getUserById(userId);
-    const total=loan.amount+Math.round(loan.amount*loan.percent/100);
-    const loans=getLoans();const l=loans.find(x=>x.id===loan.id);
-    if(l){l.status='returned';l.returnedAt=nowISO()}
-    saveLoans(loans);
-    addOp({type:'loan_return',userId:u.id,userName:u.fio,amount:total});
-    toast('Принят возврат '+fmtMoney(total)+' от '+u.fio+'.','ok');
-    closeModal('adminOpsModal');
-  }
-  window.adminDeposit=adminDeposit;
-  window.adminReturn=adminReturn;
+  if(me.role==='admin'){
+    $('btnScanCard').addEventListener('click',()=>{
+      const num=$('scanNumber').value.trim();
+      const code=$('scanCode').value.trim();
+      if(!/^\d{10}$/.test(num)){toast('Номер карты — 10 цифр.','err');return}
+      if(!/^\d{3}$/.test(code)){toast('Код — 3 цифры.','err');return}
+      const card=getCards().find(c=>c.number===num&&c.code===code);
+      if(!card){toast('Карта не найдена или код неверный.','err');return}
+      if(card.status==='blocked'){toast('Карта заблокирована.','err');return}
+      const user=getUserById(card.userId);
+      if(!user){toast('Владелец не найден.','err');return}
+      const contributed=getUserContributed(user.id);
+      const loan=getActiveLoan(user.id);
+      const total=loan?loan.amount+Math.round(loan.amount*(loan.percent||0)/100):0;
+      $('adminOpsTitle').textContent='Участник: '+user.fio;
+      $('adminOpsBody').innerHTML=`
+        <div class="card" style="box-shadow:none;background:#f7fbff;padding:16px">
+          <div style="font-size:17px;font-weight:700">${esc(user.fio)}</div>
+          <div class="text-muted">${esc(user.email)}</div>
+          <div style="margin:10px 0">
+            <span class="badge blue">вклад: ${fmtMoney(contributed)}</span>
+            <span class="badge ${loan?'red':'green'}" style="margin-left:6px">заём: ${loan?fmtMoney(total)+' (до '+fmtDate(loan.dueDate)+')':'нет'}</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn green small" id="admScanAdd">Внести в казну</button>
+            ${loan?`<button class="btn red small" id="admScanReturn">Принять возврат</button>`:''}
+          </div>
+        </div>`;
+      openModal('adminOpsModal');
 
-  $('btnScanCard').addEventListener('click',()=>{
-    const num=$('scanNumber').value.trim();
-    const code=$('scanCode').value.trim();
-    if(!/^\d{10}$/.test(num)){toast('Номер карты — 10 цифр.','err');return}
-    if(!/^\d{3}$/.test(code)){toast('Код — 3 цифры.','err');return}
-    const card=getCards().find(c=>c.number===num&&c.code===code);
-    if(!card){toast('Карта не найдена или код неверный.','err');return}
-    if(card.status==='blocked'){toast('Карта заблокирована.','err');return}
-    const user=getUserById(card.userId);
-    if(!user){toast('Владелец не найден.','err');return}
-    const contributed=getUserContributed(user.id);
-    const loan=getActiveLoan(user.id);
-    let loanText='нет';
-    if(loan){
-      const total=loan.amount+Math.round(loan.amount*loan.percent/100);
-      loanText=fmtMoney(total)+' (до '+fmtDate(loan.dueDate)+')';
-    }
-    $('adminOpsTitle').textContent='Участник: '+user.fio;
-    $('adminOpsBody').innerHTML=`
-      <div class="card" style="box-shadow:none;background:#f7fbff;padding:16px">
-        <div style="font-size:17px;font-weight:700">${esc(user.fio)}</div>
-        <div class="text-muted">${esc(user.email)}</div>
-        <div style="margin:10px 0">
-          <span class="badge blue">вклад: ${fmtMoney(contributed)}</span>
-          <span class="badge ${loan?'red':'green'}" style="margin-left:6px">заём: ${loanText}</span>
-        </div>
-        <div class="btn-row">
-          <button class="btn green small" onclick="adminDeposit('${user.id}')">Внести в казну</button>
-          ${loan?`<button class="btn red small" onclick="adminReturn('${user.id}')">Принять возврат</button>`:''}
-        </div>
-      </div>
-    `;
-    openModal('adminOpsModal');
-  });
+      const addBtn=$('admScanAdd');
+      if(addBtn)addBtn.addEventListener('click',async()=>{
+        const v=Number(prompt('Сумма взноса (100–5000 ₽):','500'));
+        if(!isFinite(v)||v<100||v>5000){toast('Сумма 100–5000 ₽.','err');return}
+        const bal=getPersonalBalance(user.id);
+        if(v>bal){toast('У пользователя недостаточно на личном счёте.','err');return}
+        await adminAction(REQ_TYPE.ADMIN_ADD_PERSONAL,{targetUserId:user.id,targetUserName:user.fio,amount:v});
+        await adminAction(REQ_TYPE.ADMIN_REMOVE_TREASURY,{amount:v});
+        closeModal('adminOpsModal');
+      });
+      const retBtn=$('admScanReturn');
+      if(retBtn)retBtn.addEventListener('click',async()=>{
+        try{await adminAction(REQ_TYPE.ADMIN_CANCEL_DEBT,{targetUserId:user.id,targetUserName:user.fio});closeModal('adminOpsModal')}
+        catch(e){toast(e.message,'err')}
+      });
+    });
+  }
 
   render();
 }
@@ -1467,7 +2146,7 @@ function renderCard(){
 /* ============================================================
    АККАУНТ
    ============================================================ */
-function renderAccount(){
+async function renderAccount(){
   const sess=getSession();if(!sess)return;
   let me=sess.user;
 
@@ -1556,14 +2235,16 @@ function renderAccount(){
   $('avatarInput').addEventListener('change',e=>{
     const f=e.target.files[0];if(!f)return;
     if(!f.type.startsWith('image/')){toast('Выберите изображение.','err');return}
-    cropAvatar(f,200,dataUrl=>{
+    cropAvatar(f,200,async dataUrl=>{
       const users=getUsers();const u=users.find(x=>x.id===me.id);if(!u)return;
-      u.avatar=dataUrl;saveUsers(users);me=getUserById(me.id);
+      u.avatar=dataUrl;saveUsers(users);
+      if(_fbReady)await fbUpdate('users/'+u.id,{avatar:dataUrl});
+      me=getUserById(me.id);
       renderProfile();toast('Аватар обновлён.','ok');
     });
   });
 
-  $('btnChangeFio').addEventListener('click',()=>{
+  $('btnChangeFio').addEventListener('click',async()=>{
     const lastname=$('chLastname').value.trim();
     const name=$('chName').value.trim();
     const patronymic=$('chPatronymic').value.trim();
@@ -1571,29 +2252,34 @@ function renderAccount(){
     const users=getUsers();const u=users.find(x=>x.id===me.id);if(!u)return;
     u.lastname=lastname;u.name=name;u.patronymic=patronymic;
     u.fio=`${lastname} ${name} ${patronymic}`;
-    saveUsers(users);me=getUserById(me.id);
+    saveUsers(users);
+    if(_fbReady)await fbUpdate('users/'+u.id,{lastname,name,patronymic,fio:u.fio});
+    me=getUserById(me.id);
     renderProfile();toast('ФИО изменено.','ok');
   });
 
-  $('btnChangePass').addEventListener('click',()=>{
+  $('btnChangePass').addEventListener('click',async()=>{
     const oldP=$('oldPass').value,newP=$('newPass').value;
     if(!oldP){toast('Введите старый пароль.','err');return}
     if(newP.length<6){toast('Новый пароль — минимум 6 символов.','err');return}
     if(!verifyHash(oldP,me.pass.salt,me.pass.hash)){toast('Неверный старый пароль.','err');return}
     const users=getUsers();const u=users.find(x=>x.id===me.id);if(!u)return;
-    u.pass=makeHash(newP);saveUsers(users);me=getUserById(me.id);
+    u.pass=makeHash(newP);saveUsers(users);
+    if(_fbReady)await fbUpdate('users/'+u.id,{pass:u.pass});
+    me=getUserById(me.id);
     $('oldPass').value='';$('newPass').value='';
     toast('Пароль изменён.','ok');
   });
 
   let pendingEmail=null;
-  $('btnChangeEmail').addEventListener('click',()=>{
+  $('btnChangeEmail').addEventListener('click',async()=>{
     const email=$('newEmail').value.trim().toLowerCase();
     if(!isEmailGmail(email)){toast('Email должен быть @gmail.com.','err');return}
     if(getUserByEmail(email)){toast('Этот email уже занят.','err');return}
     const mode=$('emailMode').value;
     if(mode==='branch'){
       addRequest({type:'change_email',userId:me.id,userName:me.fio,newEmail:email});
+      if(_fbReady)await fbPush('requests',{type:'change_email',userId:me.id,userName:me.fio,payload:{newEmail:email},status:'pending',createdAt:nowISO()});
       toast('Заявка отправлена администратору.','ok');
       $('newEmail').value='';
       return;
@@ -1605,25 +2291,29 @@ function renderAccount(){
     openModal('codeModal');
     setTimeout(()=>toast('Код (симуляция): '+code,'ok'),300);
   });
-  $('btnConfirmEmailCode').addEventListener('click',()=>{
+  $('btnConfirmEmailCode').addEventListener('click',async()=>{
     const entered=$('emailCode').value.trim();
     const real=ssGet(SS.emailCode,'');
     if(!real||entered!==real){toast('Неверный код.','err');return}
     if(!pendingEmail){toast('Нет данных.','err');return}
     const users=getUsers();const u=users.find(x=>x.id===me.id);if(!u)return;
-    u.email=pendingEmail;saveUsers(users);me=getUserById(me.id);
+    u.email=pendingEmail;saveUsers(users);
+    if(_fbReady)await fbUpdate('users/'+u.id,{email:pendingEmail});
+    me=getUserById(me.id);
     ssDel(SS.emailCode);pendingEmail=null;
     closeModal('codeModal');$('newEmail').value='';
     renderProfile();toast('Email изменён.','ok');
   });
 
-  $('btnChangePin').addEventListener('click',()=>{
+  $('btnChangePin').addEventListener('click',async()=>{
     const pass=$('pinPass').value,pin=$('newPin').value;
     if(!pass){toast('Введите пароль.','err');return}
     if(!isPin5(pin)){toast('PIN — ровно 5 цифр.','err');return}
     if(!verifyHash(pass,me.pass.salt,me.pass.hash)){toast('Неверный пароль.','err');return}
     const users=getUsers();const u=users.find(x=>x.id===me.id);if(!u)return;
-    u.pin=makeHash(pin);saveUsers(users);me=getUserById(me.id);
+    u.pin=makeHash(pin);saveUsers(users);
+    if(_fbReady)await fbUpdate('users/'+u.id,{pin:u.pin});
+    me=getUserById(me.id);
     $('pinPass').value='';$('newPin').value='';
     toast('PIN-код изменён.','ok');
   });
@@ -1632,21 +2322,30 @@ function renderAccount(){
 }
 
 /* ============================================================
-   Конфиг и старт
+   ИНИЦИАЛИЗАЦИЯ
    ============================================================ */
-(function init(){
+(async function init(){
+  // Конфиг
   if(!lsGet(LS.config,null)){
     lsSet(LS.config,{loanPercent:LOAN_PERCENT,loanTermDays:LOAN_TERM_DAYS});
   }
-})();
 
-/* Старт роутера */
-if(!location.hash)location.replace('#/login');
-window.addEventListener('DOMContentLoaded',()=>{
-  route();
-  if(!location.hash)route();
-});
-route();
+  // Firebase: авторизация + подтягивание данных + создание админа
+  try{
+    await ensureFirebaseAuth();
+    await syncFromFirebase();
+    await ensureAdminExists();
+    // повторная синхронизация после возможного создания админа
+    await syncFromFirebase();
+    startRealtimeSync();
+  }catch(e){
+    console.warn('Firebase недоступен, работаем в локальном режиме:',e.message);
+  }
+
+  // Роутер
+  if(!location.hash)location.replace('#/login');
+  await route();
+})();
 </script>
 </body>
 </html>
