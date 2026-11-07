@@ -71,15 +71,22 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
   display:inline-flex;align-items:center;justify-content:center;
   padding:14px 24px;border:none;border-radius:12px;font-size:15px;font-weight:600;
   cursor:pointer;color:#fff; font-family:inherit; transition:transform .1s, opacity .2s, box-shadow .2s;
-  background: var(--sber-green); /* ТОЛЬКО ЗЕЛЕНЫЙ */
+  background: var(--sber-green);
   box-shadow: 0 4px 12px rgba(33, 160, 56, 0.2);
 }
 .btn:hover{opacity:0.9; box-shadow: 0 6px 16px rgba(33, 160, 56, 0.3);}
 .btn:active{transform:scale(.96);}
 .btn:disabled{opacity:.5;cursor:not-allowed; box-shadow:none;}
 
-.btn.neutral { background: var(--input-bg); color: var(--text-main); box-shadow: none; border: 1px solid var(--border); }
+/* Серые кнопки БЕЗ РАМКИ */
+.btn.neutral {
+  background: var(--input-bg); 
+  color: var(--text-main); 
+  box-shadow: none;
+  border: none;
+}
 .btn.neutral:hover { background: var(--border); }
+
 .btn.ghost{background:var(--input-bg);color:var(--text-main); box-shadow:none;}
 .btn.red{background:var(--red); box-shadow:0 4px 12px rgba(255,59,48,0.2);}
 .btn.small{padding:8px 14px;font-size:13px;border-radius:8px;}
@@ -101,23 +108,44 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .toast-wrap{position:fixed;top:16px;right:16px;left:16px;z-index:400;display:flex;flex-direction:column;align-items:center;pointer-events:none;}
 .toast{background:var(--text-main);color:var(--card-bg);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;animation:fadeIn .3s;}
 
-/* --- МОДАЛЬНЫЕ ОКНА (ИСПРАВЛЕНО ДЛЯ МОБИЛЬНЫХ) --- */
-.modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: -webkit-fill-available;
-  background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center;
-  padding: 16px; z-index: 300; opacity: 0; pointer-events: none; transition: opacity .2s; overscroll-behavior: contain;
+/* ============================================================
+   НАТИВНЫЕ МОДАЛЬНЫЕ ОКНА (ЦЕНТРИРУЮТСЯ БРАУЗЕРОМ)
+   ============================================================ */
+dialog.modal-dialog {
+  padding: 24px;
+  border: none;
+  border-radius: 24px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  margin: auto;
 }
-.modal-overlay.open { opacity: 1; pointer-events: auto; }
-.modal {
-  background: var(--card-bg); border-radius: 24px; width: 100%; max-width: 440px; max-height: 85vh;
-  overflow-y: auto; padding: 24px; transform: translateY(20px); transition: transform .3s cubic-bezier(.34,1.56,.64,1);
-  margin: auto; -webkit-overflow-scrolling: touch;
+dialog::backdrop {
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
 }
-.modal-overlay.open .modal { transform: translateY(0); }
-.modal h3{margin:0 0 16px;font-size:20px;font-weight:700;}
-.modal .close-x{float:right;background:var(--input-bg);border:none;color:var(--text-main);width:32px;height:32px;border-radius:50%;cursor:pointer; transition:transform .1s;}
-.modal .close-x:active{transform:scale(0.9);}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.modal-header h3 { margin: 0; font-size: 20px; font-weight: 700; }
+.close-btn {
+  background: var(--input-bg);
+  border: none;
+  color: var(--text-main);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.close-btn:active { transform: scale(0.9); }
 
+/* Остальные стили */
 .treasury-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:16px;}
 .treasury{
   width:100%; max-width: 500px; color: #fff; border-radius: 24px; padding: 24px; 
@@ -244,6 +272,15 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
 <div id="app"></div>
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- УНИВЕРСАЛЬНОЕ МОДАЛЬНОЕ ОКНО -->
+<dialog id="universalModal" class="modal-dialog">
+  <div class="modal-header">
+    <h3 id="modalTitle"></h3>
+    <button class="close-btn" onclick="closeModal()">✕</button>
+  </div>
+  <div id="modalBody"></div>
+</dialog>
+
 <div id="loadingScreen" style="display:none">
   <div class="loading-landscape" id="loadingLandscape"></div>
   <div class="loading-greeting" id="loadingGreeting">Добрый день!</div>
@@ -354,7 +391,7 @@ function startRealtimeSync(){
         _syncTimeout=setTimeout(()=>{
           const {path}=parseHash();
           if(['index','personal','card','account'].includes(path)){
-            const openModal = document.querySelector('.modal-overlay.open');
+            const openModal = document.querySelector('dialog[open]');
             if(!openModal){ routes[path](); }
           }
         }, 500);
@@ -439,12 +476,19 @@ function clearSession(){ ssDel(SS.session); }
 
 function toast(msg,type){ const w=document.getElementById('toastWrap'); if(!w)return; const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; w.appendChild(t); setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},3200); }
 
-let scrollPosition = 0;
-function openModal(id){ const el=document.getElementById(id); if(!el)return; scrollPosition=window.pageYOffset; document.body.style.overflow='hidden'; document.body.style.position='fixed'; document.body.style.top=`-${scrollPosition}px`; document.body.style.width='100%'; el.classList.add('open'); }
-function closeModal(id){ const el=document.getElementById(id); if(!el)return; el.classList.remove('open'); document.body.style.overflow=''; document.body.style.position=''; document.body.style.top=''; document.body.style.width=''; window.scrollTo(0,scrollPosition); }
-function closeAllModals(){ document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); document.body.style.overflow=''; document.body.style.position=''; document.body.style.top=''; document.body.style.width=''; window.scrollTo(0,scrollPosition); }
+/* НОВЫЕ МОДАЛЬНЫЕ ОКНА */
+function showModal(title, contentHTML) {
+  const dialog = document.getElementById('universalModal');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = contentHTML;
+  dialog.showModal();
+}
+function closeModal() {
+  const dialog = document.getElementById('universalModal');
+  if (dialog.open) dialog.close();
+}
+function closeAllModals() { closeModal(); }
 
-document.addEventListener('click',e=>{if(e.target.classList&&e.target.classList.contains('modal-overlay'))closeAllModals()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllModals()});
 
 let _idle=null;
@@ -520,35 +564,69 @@ async function executeApprovedOperation(req){
 }
 
 async function instantAction(type,payload){
-  const sess=getSession(); if(!sess)throw new Error('Нет сессии'); const me=sess.user; const ts=nowISO();
-  const pushOp=async(op)=>{ const id=uid(); const full={id,userId:me.id,userName:me.fio,ts,...op}; const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)await fbSet('operations/'+id,full); return full; };
-  
-  if(type===REQ_TYPE.PERSONAL_DEPOSIT){
-    const amt=Number(payload.amount); if(!isFinite(amt)||amt<=0)throw new Error('Сумма некорректна');
-    await pushOp({type:'personal_deposit',amount:amt,comment:'Пополнение'});
-  }
-  else if(type===REQ_TYPE.PERSONAL_WITHDRAW){
-    const amt=Number(payload.amount); if(!isFinite(amt)||amt<=0)throw new Error('Сумма некорректна');
-    if(getPersonalBalance(me.id)<amt)throw new Error('Недостаточно средств');
-    await pushOp({type:'personal_withdraw',amount:amt,comment:'Снятие'});
-  }
-  else if(type===REQ_TYPE.ISSUE_CARD){
-    if(getUserCard(me.id))throw new Error('Карта уже оформлена');
-    const cardId=uid(); const card={id:cardId,userId:me.id,userName:me.fio,number:genCardNumber(),code:genCardCode(),status:'active',issuedAt:ts};
-    const cards=getCards();cards.push(card);saveCards(cards); if(_fbReady)await fbSet('cards/'+cardId,card);
-  }
-  else if(type==='transfer'){
-    const amt=Number(payload.amount); const targetId=payload.targetUserId;
-    if(!isFinite(amt)||amt<=0)throw new Error('Сумма некорректна');
-    if(targetId===me.id)throw new Error('Нельзя перевести себе');
-    if(getPersonalBalance(me.id)<amt)throw new Error('Недостаточно средств на личном счёте');
-    const target=getUserById(targetId); if(!target)throw new Error('Получатель не найден');
+  const sess = getSession(); if(!sess) throw new Error('Нет сессии'); 
+  const me = sess.user; const ts = nowISO();
+
+  if (type === 'transfer') {
+    const amt = Number(payload.amount); 
+    const targetId = payload.targetUserId;
     
-    // Списание у отправителя
-    await pushOp({type:'transfer_out',amount:amt,comment:`Перевод для ${target.fio}`,targetUserId:target.id});
-    // Зачисление получателю
-    const id=uid(); const full={id,userId:target.id,userName:target.fio,ts,type:'transfer_in',amount:amt,comment:`Перевод от ${me.fio}`,targetUserId:me.id};
-    const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)await fbSet('operations/'+id,full);
+    if (!isFinite(amt) || amt <= 0) throw new Error('Сумма некорректна');
+    if (targetId === me.id) throw new Error('Нельзя перевести себе');
+    if (getPersonalBalance(me.id) < amt) throw new Error('Недостаточно средств');
+    
+    const target = getUserById(targetId); 
+    if (!target) throw new Error('Получатель не найден');
+
+    const outId = uid();
+    const inId = uid();
+
+    const outOp = { id: outId, userId: me.id, userName: me.fio, ts, type: 'transfer_out', amount: amt, comment: `Перевод для ${target.fio}`, targetUserId: target.id };
+    const inOp = { id: inId, userId: target.id, userName: target.fio, ts, type: 'transfer_in', amount: amt, comment: `Перевод от ${me.fio}`, targetUserId: me.id };
+
+    if (_fbReady) {
+      await fbSet('operations/' + outId, outOp);
+      await fbSet('operations/' + inId, inOp);
+    }
+    
+    const ops = getOps();
+    ops.push(outOp);
+    ops.push(inOp);
+    saveOps(ops);
+    
+    return;
+  }
+
+  const pushOp = async (op) => {
+    const id = uid(); 
+    const full = { id, userId: me.id, userName: me.fio, ts, ...op };
+    
+    if (_fbReady) await fbSet('operations/' + id, full);
+    
+    const ops = getOps();
+    ops.push(full);
+    saveOps(ops);
+  };
+
+  if (type === REQ_TYPE.PERSONAL_DEPOSIT) {
+    const amt = Number(payload.amount); if (!isFinite(amt) || amt <= 0) throw new Error('Сумма некорректна');
+    await pushOp({ type: 'personal_deposit', amount: amt, comment: 'Пополнение' });
+  } 
+  else if (type === REQ_TYPE.PERSONAL_WITHDRAW) {
+    const amt = Number(payload.amount); if (!isFinite(amt) || amt <= 0) throw new Error('Сумма некорректна');
+    if (getPersonalBalance(me.id) < amt) throw new Error('Недостаточно средств');
+    await pushOp({ type: 'personal_withdraw', amount: amt, comment: 'Снятие' });
+  } 
+  else if (type === REQ_TYPE.ISSUE_CARD) {
+    if (getUserCard(me.id)) throw new Error('Карта уже оформлена');
+    const cardId = uid(); 
+    const card = { id: cardId, userId: me.id, userName: me.fio, number: genCardNumber(), code: genCardCode(), status: 'active', issuedAt: ts };
+    
+    if (_fbReady) await fbSet('cards/' + cardId, card);
+    
+    const cards = getCards();
+    cards.push(card);
+    saveCards(cards);
   }
 }
 
@@ -846,12 +924,6 @@ async function renderIndex(){
       <div class="btn-row"><button class="btn neutral small" id="btnAdmBlockUser">Блок. аккаунт</button><button class="btn neutral small" id="btnAdmBlockCard">Блок. карту</button></div>
     </div>
     `:''}
-
-    <div class="modal-overlay" id="contribModal"><div class="modal"><button class="close-x" onclick="closeModal('contribModal')">✕</button><h3>Внести в казну</h3><div class="field"><label>Сумма</label><input type="number" id="contribAmount"></div><button class="btn block" id="btnDoContribute">Отправить заявку</button></div></div>
-    <div class="modal-overlay" id="loanModal"><div class="modal"><button class="close-x" onclick="closeModal('loanModal')">✕</button><h3>Взять заём</h3><div class="field"><label>Сумма</label><input type="number" id="loanAmount"><div class="hint" id="loanHint"></div></div><button class="btn block" id="btnDoLoan">Отправить заявку</button></div></div>
-    <div class="modal-overlay" id="returnModal"><div class="modal"><button class="close-x" onclick="closeModal('returnModal')">✕</button><h3>Возврат займа</h3><div id="returnInfo" style="margin-bottom:14px"></div><button class="btn block" id="btnDoReturn">Отправить заявку</button></div></div>
-    <div class="modal-overlay" id="memberModal"><div class="modal"><button class="close-x" onclick="closeModal('memberModal')">✕</button><h3 id="mmTitle">Участник</h3><div id="mmBody"></div></div></div>
-    <div class="modal-overlay" id="commentModal"><div class="modal"><button class="close-x" onclick="closeModal('commentModal')">✕</button><h3>Комментарий</h3><div style="display:flex;flex-direction:column;gap:10px;margin:14px 0"><label><input type="radio" name="cmt" value="ok"> Успешно.</label><label><input type="radio" name="cmt" value="noMoney"> Недостаточно средств.</label><label><input type="radio" name="cmt" value="noCard"> Карта заблокирована или нет счёта.</label></div><button class="btn block" id="btnCommentConfirm">Подтвердить</button></div></div>
   `);
 
   bindShell('index');startIdle();
@@ -872,22 +944,24 @@ async function renderIndex(){
     const u=getUserById(userId);if(!u)return; const contributed=getUserContributed(u.id); const loan=getActiveLoan(u.id); const isMe=u.id===me.id;
     let loanHtml='<p class="text-muted">Активного займа нет.</p>';
     if(loan){ const total=loan.amount+Math.round(loan.amount*(loan.percent||0)/100); loanHtml=`<div class="card" style="box-shadow:none;background:var(--input-bg);padding:14px"><div><b>Сумма:</b> ${fmtMoney(loan.amount)}</div><div><b>К возврату:</b> ${fmtMoney(total)}</div><div><b>Срок:</b> ${fmtDate(loan.dueDate)}</div></div>`; }
-    $('mmTitle').textContent=u.fio; const body=$('mmBody');
-    body.innerHTML=`<div style="margin-bottom:10px"><span class="badge blue">вклад: ${fmtMoney(contributed)}</span> ${loan?'<span class="badge red">долг</span>':'<span class="badge green">без долга</span>'}</div><h4 style="margin:14px 0 6px">Заём</h4>${loanHtml}`;
+    
+    let html = `<div style="margin-bottom:10px"><span class="badge blue">вклад: ${fmtMoney(contributed)}</span> ${loan?'<span class="badge red">долг</span>':'<span class="badge green">без долга</span>'}</div><h4 style="margin:14px 0 6px">Заём</h4>${loanHtml}`;
     if(isMe){
-      const row=document.createElement('div');row.className='btn-row';
-      const bC=document.createElement('button');bC.className='btn small';bC.textContent='Внести в казну';
-      bC.addEventListener('click',()=>{closeModal('memberModal');$('contribAmount').value='';openModal('contribModal')}); row.appendChild(bC);
-      if(!loan){ const bL=document.createElement('button');bL.className='btn ghost small';bL.textContent='Взять заём'; bL.addEventListener('click',()=>{ closeModal('memberModal'); const max=getTreasuryBalance(); $('loanHint').textContent=`Доступно: ${fmtMoney(max)}.`; $('loanAmount').value=''; openModal('loanModal'); }); row.appendChild(bL); }
-      else{ const bR=document.createElement('button');bR.className='btn red small';bR.textContent='Вернуть'; bR.addEventListener('click',()=>{ closeModal('memberModal'); currentReturn=loan; const total=loan.amount+Math.round(loan.amount*(loan.percent||0)/100); const bal=getPersonalBalance(me.id); $('returnInfo').innerHTML=`К возврату: <b>${fmtMoney(total)}</b><br>У вас: ${fmtMoney(bal)}`; openModal('returnModal'); }); row.appendChild(bR); }
-      body.appendChild(row);
+      html += `<div class="btn-row">
+        <button class="btn small" onclick="closeModal(); setTimeout(()=>{document.getElementById('contribAmount').value=''; showModal('Внести в казну', '<div class=\\'field\\'><label>Сумма</label><input type=\\'number\\' id=\\'contribAmount\\'></div><button class=\\'btn block\\' id=\\'btnDoContribute\\'>Отправить заявку</button>'); document.getElementById('btnDoContribute').onclick=window.doContribute;}, 100)">Внести в казну</button>`;
+      if(!loan){ 
+        html += `<button class="btn ghost small" onclick="closeModal(); setTimeout(()=>{document.getElementById('loanHint').textContent='Доступно: ${fmtMoney(getTreasuryBalance())}.'; showModal('Взять заём', '<div class=\\'field\\'><label>Сумма</label><input type=\\'number\\' id=\\'loanAmount\\'><div class=\\'hint\\' id=\\'loanHint\\'></div></div><button class=\\'btn block\\' id=\\'btnDoLoan\\'>Отправить заявку</button>'); document.getElementById('btnDoLoan').onclick=window.doLoan;}, 100)">Взять заём</button>`; 
+      } else { 
+        html += `<button class="btn red small" onclick="closeModal(); setTimeout(()=>{document.getElementById('returnInfo').innerHTML='К возврату: <b>${fmtMoney(loan.amount+Math.round(loan.amount*(loan.percent||0)/100))}</b><br>У вас: ${fmtMoney(getPersonalBalance(me.id))}'; showModal('Возврат займа', '<div id=\\'returnInfo\\'></div><button class=\\'btn block\\' id=\\'btnDoReturn\\'>Отправить заявку</button>'); document.getElementById('btnDoReturn').onclick=window.doReturn;}, 100)">Вернуть</button>`; 
+      }
+      html += `</div>`;
     }
-    openModal('memberModal');
+    showModal(u.fio, html);
   }
 
-  $('btnDoContribute').addEventListener('click',async()=>{ const v=Number($('contribAmount').value); if(!isFinite(v)||v<100||v>5000){toast('Сумма 100–5000 ₽.','err');return} try{await createRequest(REQ_TYPE.CONTRIBUTE,{amount:v});closeModal('contribModal');toast('Заявка отправлена','ok')}catch(e){toast(e.message,'err')} });
-  $('btnDoLoan').addEventListener('click',async()=>{ const v=Number($('loanAmount').value); if(!isFinite(v)||v<=0){toast('Некорректная сумма.','err');return} try{await createRequest(REQ_TYPE.TAKE_LOAN,{amount:v});closeModal('loanModal');toast('Заявка отправлена','ok')}catch(e){toast(e.message,'err')} });
-  $('btnDoReturn').addEventListener('click',async()=>{ if(!currentReturn)return; const loan=currentReturn; const total=loan.amount+Math.round(loan.amount*(loan.percent||0)/100); const bal=getPersonalBalance(me.id); if(total>bal){toast('Недостаточно на личном счёте.','err');return} try{await createRequest(REQ_TYPE.RETURN_LOAN,{amount:total});currentReturn=null;closeModal('returnModal');toast('Заявка отправлена','ok')}catch(e){toast(e.message,'err')} });
+  window.doContribute = async () => { const v=Number($('contribAmount').value); if(!isFinite(v)||v<100||v>5000){toast('Сумма 100–5000 ₽.','err');return} try{await createRequest(REQ_TYPE.CONTRIBUTE,{amount:v});closeModal();toast('Заявка отправлена','ok')}catch(e){toast(e.message,'err')} };
+  window.doLoan = async () => { const v=Number($('loanAmount').value); if(!isFinite(v)||v<=0){toast('Некорректная сумма.','err');return} try{await createRequest(REQ_TYPE.TAKE_LOAN,{amount:v});closeModal();toast('Заявка отправлена','ok')}catch(e){toast(e.message,'err')} };
+  window.doReturn = async () => { if(!currentReturn)return; const total=currentReturn.amount+Math.round(currentReturn.amount*(currentReturn.percent||0)/100); try{await createRequest(REQ_TYPE.RETURN_LOAN,{amount:total});currentReturn=null;closeModal();toast('Заявка отправлена','ok')}catch(e){toast(e.message,'err')} };
 
   function renderOps(){
     const tbody=document.querySelector('#opsTable tbody'); const filtered=getOps().slice().reverse().filter(o=>['contribute','loan_out','loan_return','personal_to_treasury','admin_treasury_out'].includes(o.type)); tbody.innerHTML='';
@@ -900,10 +974,9 @@ async function renderIndex(){
     const tbody=document.querySelector('#adminReqsTable tbody'); if(!tbody)return;
     let reqs = getRequests().filter(r=>r.status==='pending').reverse(); tbody.innerHTML='';
     reqs.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmtDateTime(r.createdAt)}</td><td>${esc(r.userName)}</td><td>${REQ_LABELS[r.type]||r.type}</td><td>${(r.payload && r.payload.amount) ? fmtMoney(r.payload.amount) : '—'}</td><td><button class="btn small" data-ap="${r.id}">✔</button> <button class="btn red small" data-rj="${r.id}">✖</button></td>`; tbody.appendChild(tr); });
-    tbody.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click',()=>{ _commentCtx={reqId:b.dataset.ap,action:'approve'}; document.querySelectorAll('input[name="cmt"]').forEach(r=>r.checked=false); document.querySelector('input[name="cmt"][value="ok"]').checked=true; openModal('commentModal'); }));
-    tbody.querySelectorAll('[data-rj]').forEach(b=>b.addEventListener('click',()=>{ _commentCtx={reqId:b.dataset.rj,action:'reject'}; document.querySelectorAll('input[name="cmt"]').forEach(r=>r.checked=false); document.querySelector('input[name="cmt"][value="noMoney"]').checked=true; openModal('commentModal'); }));
+    tbody.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click',()=>{ _commentCtx={reqId:b.dataset.ap,action:'approve'}; document.querySelectorAll('input[name="cmt"]').forEach(r=>r.checked=false); showModal('Комментарий', '<div style="display:flex;flex-direction:column;gap:10px;margin:14px 0"><label><input type="radio" name="cmt" value="ok" checked> Успешно.</label><label><input type="radio" name="cmt" value="noMoney"> Недостаточно средств.</label><label><input type="radio" name="cmt" value="noCard"> Карта заблокирована или нет счёта.</label></div><button class="btn block" id="btnCmt">Подтвердить</button>'); document.getElementById('btnCmt').onclick=async()=>{ const val=document.querySelector('input[name="cmt"]:checked').value; closeModal(); try{ await approveRequest(_commentCtx.reqId,val); renderAll(); }catch(err){toast(err.message,'err')} }; }));
+    tbody.querySelectorAll('[data-rj]').forEach(b=>b.addEventListener('click',()=>{ _commentCtx={reqId:b.dataset.rj,action:'reject'}; document.querySelectorAll('input[name="cmt"]').forEach(r=>r.checked=false); showModal('Комментарий', '<div style="display:flex;flex-direction:column;gap:10px;margin:14px 0"><label><input type="radio" name="cmt" value="ok"> Успешно.</label><label><input type="radio" name="cmt" value="noMoney" checked> Недостаточно средств.</label><label><input type="radio" name="cmt" value="noCard"> Карта заблокирована или нет счёта.</label></div><button class="btn block" id="btnCmt">Подтвердить</button>'); document.getElementById('btnCmt').onclick=async()=>{ const val=document.querySelector('input[name="cmt"]:checked').value; closeModal(); try{ await rejectRequest(_commentCtx.reqId,val); renderAll(); }catch(err){toast(err.message,'err')} }; }));
   }
-  document.addEventListener('click',async e=>{ if(e.target.id!=='btnCommentConfirm')return; const val=document.querySelector('input[name="cmt"]:checked').value; const ctx=_commentCtx; if(!ctx)return; closeModal('commentModal'); try{ if(ctx.action==='approve')await approveRequest(ctx.reqId,val); else await rejectRequest(ctx.reqId,val); renderAll(); }catch(err){toast(err.message,'err')} });
 
   if(isAdmin){
     const sel=$('admTargetUser'); if(sel){ getUsers().filter(u=>u.id!==me.id).forEach(u=>{ const opt=document.createElement('option'); opt.value=u.id;opt.textContent=u.fio; sel.appendChild(opt); }); }
@@ -940,36 +1013,24 @@ async function renderPersonal(){
       <h3 class="section-title">История</h3>
       <div class="table-wrap"><table class="tbl" id="personalOpsTable"><thead><tr><th>Дата</th><th>Операция</th><th>Сумма</th></tr></thead><tbody></tbody></table></div>
     </div>
-    <div class="modal-overlay" id="depositModal"><div class="modal"><button class="close-x" onclick="closeModal('depositModal')">✕</button><h3>Пополнить</h3><div class="field"><label>Сумма</label><input type="number" id="depositAmount"></div><button class="btn block" id="btnDoDeposit">Пополнить</button></div></div>
-    <div class="modal-overlay" id="withdrawModal"><div class="modal"><button class="close-x" onclick="closeModal('withdrawModal')">✕</button><h3>Снять</h3><div class="field"><label>Сумма</label><input type="number" id="withdrawAmount"><div class="hint" id="withdrawHint"></div></div><button class="btn block" id="btnDoWithdraw">Снять</button></div></div>
-    <div class="modal-overlay" id="transferModal"><div class="modal">
-      <button class="close-x" onclick="closeModal('transferModal')">✕</button>
-      <h3>Перевод участнику</h3>
-      <div class="field"><label>Кому</label><select id="transferTarget"></select></div>
-      <div class="field"><label>Сумма</label><input type="number" id="transferAmount"><div class="hint" id="transferHint"></div></div>
-      <button class="btn block" id="btnDoTransfer">Перевести</button>
-    </div></div>
   `);
   bindShell('personal');startIdle(); const $=id=>document.getElementById(id);
   function hasAccount(){ return getOps().some(o=>o.userId===me.id&&['personal_deposit','personal_withdraw','personal_to_treasury','transfer_out','transfer_in'].includes(o.type)); }
   function render(){ if(!hasAccount()){ $('noAccount').style.display='block';$('accountBox').style.display='none'; }else{ $('noAccount').style.display='none';$('accountBox').style.display='block'; $('personalBalance').textContent=fmtMoney(getPersonalBalance(me.id)); renderOps(); } }
   function renderOps(){ const ops=getOps().filter(o=>o.userId===me.id||o.targetUserId===me.id).reverse(); const tbody=document.querySelector('#personalOpsTable tbody');tbody.innerHTML=''; const labels={personal_deposit:'Пополнение',personal_withdraw:'Снятие',personal_to_treasury:'В казну',transfer_out:'Перевод отправлен',transfer_in:'Перевод получен'}; ops.forEach(op=>{ const isIn=(op.type==='personal_deposit'||op.type==='transfer_in'); const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmtDateTime(op.ts)}</td><td>${labels[op.type]||op.type}</td><td class="${isIn?'amt-in':'amt-out'}">${isIn?'+':'−'} ${fmtMoney(op.amount)}</td>`; tbody.appendChild(tr); }); }
   
-  $('btnOpenAccount').addEventListener('click',()=>{$('depositAmount').value='';openModal('depositModal')}); 
-  $('btnDeposit').addEventListener('click',()=>{$('depositAmount').value='';openModal('depositModal')});
-  $('btnWithdraw').addEventListener('click',()=>{$('withdrawHint').textContent='Доступно: '+fmtMoney(getPersonalBalance(me.id)); $('withdrawAmount').value='';openModal('withdrawModal')});
-  
+  $('btnOpenAccount').addEventListener('click',()=>{ showModal('Пополнить', '<div class="field"><label>Сумма</label><input type="number" id="depositAmount"></div><button class="btn block" id="btnDoDeposit">Пополнить</button>'); $('btnDoDeposit').onclick=window.doDeposit; });
+  $('btnDeposit').addEventListener('click',()=>{ showModal('Пополнить', '<div class="field"><label>Сумма</label><input type="number" id="depositAmount"></div><button class="btn block" id="btnDoDeposit">Пополнить</button>'); $('btnDoDeposit').onclick=window.doDeposit; });
+  $('btnWithdraw').addEventListener('click',()=>{ showModal('Снять', `<div class="field"><label>Сумма</label><input type="number" id="withdrawAmount"><div class="hint">Доступно: ${fmtMoney(getPersonalBalance(me.id))}</div></div><button class="btn block" id="btnDoWithdraw">Снять</button>`); $('btnDoWithdraw').onclick=window.doWithdraw; });
   $('btnTransfer').addEventListener('click',()=>{
-    const sel = $('transferTarget'); sel.innerHTML='';
-    getUsers().filter(u=>u.id!==me.id && isApproved(u)).forEach(u=>{ const opt=document.createElement('option'); opt.value=u.id; opt.textContent=u.fio; sel.appendChild(opt); });
-    $('transferHint').textContent='Доступно: '+fmtMoney(getPersonalBalance(me.id));
-    $('transferAmount').value='';
-    openModal('transferModal');
+    let opts = getUsers().filter(u=>u.id!==me.id && isApproved(u)).map(u=>`<option value="${u.id}">${u.fio}</option>`).join('');
+    showModal('Перевод участнику', `<div class="field"><label>Кому</label><select id="transferTarget">${opts}</select></div><div class="field"><label>Сумма</label><input type="number" id="transferAmount"><div class="hint">Доступно: ${fmtMoney(getPersonalBalance(me.id))}</div></div><button class="btn block" id="btnDoTransfer">Перевести</button>`);
+    $('btnDoTransfer').onclick=window.doTransfer;
   });
 
-  $('btnDoDeposit').addEventListener('click',async()=>{ const v=Number($('depositAmount').value); if(!isFinite(v)||v<=0){toast('Некорректно','err');return} try{await instantAction(REQ_TYPE.PERSONAL_DEPOSIT,{amount:v});closeModal('depositModal');render();toast('Пополнено','ok')}catch(e){toast(e.message,'err')} });
-  $('btnDoWithdraw').addEventListener('click',async()=>{ const v=Number($('withdrawAmount').value); if(!isFinite(v)||v<=0){toast('Некорректно','err');return} try{await instantAction(REQ_TYPE.PERSONAL_WITHDRAW,{amount:v});closeModal('withdrawModal');render();toast('Снято','ok')}catch(e){toast(e.message,'err')} });
-  $('btnDoTransfer').addEventListener('click',async()=>{ const v=Number($('transferAmount').value); const targetId=$('transferTarget').value; if(!targetId){toast('Выберите получателя','err');return} if(!isFinite(v)||v<=0){toast('Некорректно','err');return} try{await instantAction('transfer',{amount:v, targetUserId:targetId});closeModal('transferModal');render();toast('Перевод выполнен','ok')}catch(e){toast(e.message,'err')} });
+  window.doDeposit = async () => { const v=Number($('depositAmount').value); if(!isFinite(v)||v<=0){toast('Некорректно','err');return} try{await instantAction(REQ_TYPE.PERSONAL_DEPOSIT,{amount:v});closeModal();render();toast('Пополнено','ok')}catch(e){toast(e.message,'err')} };
+  window.doWithdraw = async () => { const v=Number($('withdrawAmount').value); if(!isFinite(v)||v<=0){toast('Некорректно','err');return} try{await instantAction(REQ_TYPE.PERSONAL_WITHDRAW,{amount:v});closeModal();render();toast('Снято','ok')}catch(e){toast(e.message,'err')} };
+  window.doTransfer = async () => { const v=Number($('transferAmount').value); const targetId=$('transferTarget').value; if(!targetId){toast('Выберите получателя','err');return} if(!isFinite(v)||v<=0){toast('Некорректно','err');return} try{await instantAction('transfer',{amount:v, targetUserId:targetId});closeModal();render();toast('Перевод выполнен','ok')}catch(e){toast(e.message,'err')} };
   
   render();
 }
@@ -984,7 +1045,6 @@ async function renderCard(){
       <div class="btn-row"><button class="btn neutral" id="btnBlockCard">Заблокировать</button></div>
     </div>
     ${me.role==='admin'?`<h3 class="section-title">Отделение</h3><div class="card"><div class="row-2"><div class="field"><label>Номер карты</label><input type="text" id="scanNumber" maxlength="10"></div><div class="field"><label>Код</label><input type="text" id="scanCode" maxlength="3"></div></div><button class="btn" id="btnScanCard">Открыть</button></div>`:''}
-    <div class="modal-overlay" id="adminOpsModal"><div class="modal"><button class="close-x" onclick="closeModal('adminOpsModal')">✕</button><h3>Участник</h3><div id="adminOpsBody"></div></div></div>
   `);
   bindShell('card');startIdle(); const $=id=>document.getElementById(id);
   function render(){ const card=getUserCard(me.id); if(!card){ $('noCard').style.display='block';$('cardBox').style.display='none'; }else{ $('noCard').style.display='none';$('cardBox').style.display='block'; $('cardFio').textContent=me.fio; const n=card.number; $('cardNum').textContent=n.slice(0,4)+' '+n.slice(4,8)+' '+n.slice(8,10); $('cardCode').textContent=card.code; $('bankCard').classList.toggle('blocked',card.status==='blocked'); drawQR($('qrSide'),JSON.stringify({n:card.number,c:card.code})); } }
@@ -994,7 +1054,7 @@ async function renderCard(){
     $('btnScanCard').addEventListener('click',()=>{
       const num=$('scanNumber').value.trim(); const code=$('scanCode').value.trim();
       const card=getCards().find(c=>c.number===num&&c.code===code); if(!card){toast('Не найдено','err');return}
-      const user=getUserById(card.userId); $('adminOpsBody').innerHTML=`<b>${esc(user.fio)}</b>`; openModal('adminOpsModal');
+      const user=getUserById(card.userId); showModal(user.fio, '<b>Операции с картой (в разработке)</b>');
     });
   }
   render();
