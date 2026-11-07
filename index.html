@@ -1257,7 +1257,7 @@ function bindShell(activePage){
   const bottomNav=document.querySelector('.bottom-nav');
   
   const handleNav = (a) => {
-    if(!a) return; // Защита
+    if(!a) return;
     if(a.dataset.nav === activePage) a.classList.add('active');
     a.addEventListener('click', e => {
       e.preventDefault();
@@ -1266,7 +1266,7 @@ function bindShell(activePage){
   };
 
   const handleLogout = (a) => {
-    if(!a) return; // Защита
+    if(!a) return;
     a.addEventListener('click', async e => {
       e.preventDefault();
       const mySess=ssGet(SS.adminSessionId,null);
@@ -1277,16 +1277,16 @@ function bindShell(activePage){
     });
   };
 
-  // Инициализация меню для ПК
   if(drawer){
     drawer.querySelectorAll('[data-nav]').forEach(handleNav);
-    handleLogout(drawer.querySelector('[data-logout]'));
+    const lo = drawer.querySelector('[data-logout]');
+    if(lo) handleLogout(lo);
   }
   
-  // Инициализация нижнего меню для телефонов
   if(bottomNav){
     bottomNav.querySelectorAll('[data-nav]').forEach(handleNav);
-    handleLogout(bottomNav.querySelector('[data-logout]'));
+    const lo = bottomNav.querySelector('[data-logout]');
+    if(lo) handleLogout(lo);
   }
 }
 
