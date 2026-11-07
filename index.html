@@ -40,7 +40,6 @@
   --red-bg: #3b1c1c;
 }
 
-/* Анимации */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeOut { to { opacity: 0; pointer-events: none; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -52,27 +51,22 @@ html,body{margin:0;padding:0;font-family:'Inter', sans-serif;background:var(--bg
 body{display:flex;flex-direction:column;min-height:100vh; padding-bottom: 70px;}
 a{color:var(--sber-green);text-decoration:none;}
 
-/* --- Шапка --- */
 header.topbar{background: var(--card-bg); padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border);}
 header.topbar h1{font-size:16px;margin:0;font-weight:600;}
 @media (min-width: 900px) { header.topbar { display: none; } }
 .user-chip{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;margin-left:auto;}
 .user-chip img{width:32px;height:32px;border-radius:50%;object-fit:cover;}
 
-/* --- Меню --- */
 .drawer{display: none;}
 .drawer-overlay{display:none;}
 
-/* --- Контент --- */
 main.page{flex:1;width:100%;max-width:1200px;margin:0 auto;padding:16px; animation: slideUp 0.3s ease both;}
 h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 
-/* --- Карточки --- */
 .card{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;border:none; animation: fadeIn 0.4s ease both;}
 .card+.card{margin-top:12px;}
 .section-title{font-size:18px;margin:24px 0 12px;font-weight:600;}
 
-/* --- Кнопки --- */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;
   padding:14px 24px;border:none;border-radius:12px;font-size:15px;font-weight:600;
@@ -89,7 +83,6 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .btn.block{width:100%;}
 .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;}
 
-/* --- Поля --- */
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px;font-weight:500;}
 .field input,.field select{
@@ -102,7 +95,6 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .field.error .err-msg{display:block;}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-/* --- Тосты и Модалки --- */
 .toast-wrap{position:fixed;top:16px;right:16px;left:16px;z-index:400;display:flex;flex-direction:column;align-items:center;pointer-events:none;}
 .toast{background:var(--text-main);color:var(--card-bg);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;animation:fadeIn .3s;}
 .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:16px; z-index:300; opacity:0; pointer-events:none; transition:opacity .2s;}
@@ -113,14 +105,12 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .modal .close-x{float:right;background:var(--input-bg);border:none;color:var(--text-main);width:32px;height:32px;border-radius:50%;cursor:pointer; transition:transform .1s;}
 .modal .close-x:active{transform:scale(0.9);}
 
-/* --- Казна --- */
 .treasury-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:16px;}
 .treasury{width:100%; max-width: 500px; color: #fff; border-radius: 24px; padding: 24px; display:flex; flex-direction:column; align-items:flex-start; box-shadow: 0 12px 30px rgba(33, 160, 56, 0.25); background: linear-gradient(90deg, #0b2e16 0%, #146626 50%, #21A038 100%); animation: popIn 0.4s ease both;}
 .treasury .label{font-size:14px; opacity:.9;}
 .treasury .amount{font-size:36px; font-weight:700; margin:8px 0;}
 .treasury .sub{font-size:13px; opacity:.8;}
 
-/* --- Участники --- */
 .members-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;}
 .member-circle{background:var(--card-bg); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; align-items:flex-start; box-shadow:var(--shadow); cursor:pointer; transition:transform .1s; animation:fadeIn .3s ease both;}
 .member-circle:active{transform:scale(.97);}
@@ -131,7 +121,6 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .member-circle .mdebt{font-size:12px; color:var(--red); font-weight:600; background:var(--red-bg); padding:4px 8px; border-radius:8px;}
 .member-circle .mdebt.none{color:var(--sber-green); background:var(--sber-green-bg);}
 
-/* --- Таблицы и Бейджи --- */
 .table-wrap{overflow-x:auto; border-radius:var(--radius); background:var(--card-bg); box-shadow:var(--shadow);}
 table.tbl{width:100%;border-collapse:collapse;font-size:14px;}
 table.tbl th,table.tbl td{padding:16px;text-align:left;border-bottom:1px solid var(--border);}
@@ -143,9 +132,6 @@ table.tbl th{color:var(--text-muted);font-size:12px;text-transform:uppercase;}
 .badge.red{background:var(--red-bg);color:var(--red);}
 .badge.blue{background:#eef2ff;color:#4f46e5;}
 
-/* ============================================================
-   ЭКРАНЫ ВХОДА И PIN
-   ============================================================ */
 .auth-layout { min-height: 100vh; width: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.3s ease;}
 @media (min-width: 900px) {
   .auth-layout { justify-content: flex-start; padding-left: 10vw; background: #e8eaed; }
@@ -178,7 +164,6 @@ table.tbl th{color:var(--text-muted);font-size:12px;text-transform:uppercase;}
 .pin-pad button.fn { background: transparent; color: #fff; font-size: 14px; font-weight: 500; border: none; transition: background .2s; }
 .pin-pad button.fn:active { background: rgba(255,255,255,0.1); }
 
-/* --- АККАУНТ И КАРТА --- */
 .avatar-edit{display:flex;align-items:center;gap:20px;margin-bottom:20px;}
 .avatar-preview{width:80px;height:80px;border-radius:50%;background:var(--input-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:28px;font-weight:600;}
 .avatar-preview img{width:100%;height:100%;object-fit:cover;}
@@ -197,7 +182,6 @@ input:checked + .slider:before { transform: translateX(22px); }
 .bank-card .card-num{font-family:monospace;font-size:16px;letter-spacing:2px;font-weight:600;margin:8px 0;color:var(--sber-green);}
 .bank-card.blocked{filter:grayscale(1) brightness(.8);}
 
-/* --- НАВИГАЦИЯ И ИКОНКИ --- */
 footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(--text-muted);margin-top:auto;}
 .bottom-nav {position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: var(--card-bg); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border); z-index: 100;}
 .bottom-nav a {display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 10px; font-weight: 500; cursor: pointer; transition: color 0.2s;}
@@ -224,7 +208,6 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
   .treasury { flex: 1; max-width: none; }
 }
 
-/* --- ЗАГРУЗКА --- */
 #loadingScreen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#000; animation: fadeIn 0.4s ease both;}
 #loadingScreen.hide{animation:fadeOut .5s ease both;}
 .loading-landscape{position:absolute;inset:0;background-size:cover;background-position:center;transition: background-image 0.5s; opacity:0.9;}
@@ -254,12 +237,10 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
   </div>
 </div>
 <audio id="upfSound" src="UPF.mp3" preload="auto"></audio>
+
 <script>
 'use strict';
 
-/* ============================================================
-   КОНСТАНТЫ
-   ============================================================ */
 const LS = { users:'upf_users', operations:'upf_operations', loans:'upf_loans', cards:'upf_cards', requests:'upf_requests', config:'upf_config', remembered:'upf_remembered' };
 const SS = { session:'upf_session', pinFail:'upf_pin_fail', adminSessionId:'upf_admin_sess' };
 const IDLE_LIMIT_MS = 5*60*1000;
@@ -269,9 +250,6 @@ const ADMIN_EMAIL = 'flypecorp@gmail.com';
 const ADMIN_PASS  = 'FlypeAdmin#Root2026!';
 const ADMIN_DEFAULT_PIN = '00000';
 
-/* ============================================================
-   ХРАНИЛИЩЕ И УТИЛИТЫ
-   ============================================================ */
 const lsGet=(k,d)=>{try{const r=localStorage.getItem(k);return r?JSON.parse(r):d}catch(e){return d}};
 const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const ssGet=(k,d)=>{try{const r=sessionStorage.getItem(k);return r?JSON.parse(r):d}catch(e){return d}};
@@ -289,9 +267,6 @@ const randomDigits=len=>{let s='';for(let i=0;i<len;i++)s+=Math.floor(Math.rando
 const isEmailGmail=e=>/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(String(e||'').trim());
 const isPin5=p=>/^\d{5}$/.test(String(p||''));
 
-/* ============================================================
-   SHA-256
-   ============================================================ */
 const SHA256 = (function(){
   const K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
   function rotr(x,n){return (x>>>n)|(x<<(32-n))}
@@ -313,9 +288,6 @@ const SHA256 = (function(){
 function makeHash(secret){const salt=uid()+uid();return{salt,hash:SHA256(salt+'::'+secret)}}
 function verifyHash(secret,salt,hash){return SHA256(salt+'::'+secret)===hash}
 
-/* ============================================================
-   FIREBASE
-   ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyDRGu3eIKuDbJ8Lzp4ohJHbYMS1Duly878",
   authDomain: "uralpf.firebaseapp.com",
@@ -386,9 +358,6 @@ async function ensureAdminExists(){
   }catch(e){ console.warn('Не удалось создать админа:',e.message); }
 }
 
-/* ============================================================
-   ТЕХРАБОТЫ И СЕССИИ
-   ============================================================ */
 async function getMaintenance(){ if(!_fbReady){const c=lsGet(LS.config,{});return c.maintenance||null;} try{return await fbGet('config/maintenance')}catch(e){return null} }
 async function setMaintenanceMode(enabled,comment){ const sess=getSession(); if(!sess||sess.user.role!=='admin')throw new Error('Только админ'); const val={enabled:!!enabled,comment:comment||'Скоро вернёмся!',updatedAt:nowISO()}; if(_fbReady)await fbSet('config/maintenance',val); const cfg=lsGet(LS.config,{}); cfg.maintenance=val; lsSet(LS.config,cfg); }
 
@@ -404,9 +373,6 @@ async function claimAdminSession(sessionId){
 }
 async function releaseAdminSession(sessionId){ if(!_fbReady)return; try{ const v=await fbGet('config/adminSession'); if(v&&v.sessionId===sessionId){ await fbSet('config/adminSession',{active:false,sessionId:null,heartbeatAt:null}); } }catch(e){} }
 
-/* ============================================================
-   ДАННЫЕ И БАЛАНСЫ
-   ============================================================ */
 const getUsers=()=>lsGet(LS.users,[]);
 const saveUsers=u=>lsSet(LS.users,u);
 const getUserById=id=>getUsers().find(u=>u.id===id)||null;
@@ -452,9 +418,6 @@ function getSession(){ const s=ssGet(SS.session,null); if(!s||!s.userId)return n
 function setSession(userId){ ssSet(SS.session,{userId,loginAt:nowISO()}); lsSet(LS.remembered,{userId}); }
 function clearSession(){ ssDel(SS.session); }
 
-/* ============================================================
-   УВЕДОМЛЕНИЯ И МОДАЛКИ
-   ============================================================ */
 function toast(msg,type){ const w=document.getElementById('toastWrap'); if(!w)return; const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; w.appendChild(t); setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},3200); }
 function openModal(id){const el=document.getElementById(id);if(!el)return;el.classList.add('open');document.body.style.overflow='hidden'}
 function closeModal(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('open');document.body.style.overflow=''}
@@ -466,9 +429,6 @@ let _idle=null;
 function resetIdle(){ if(_idle)clearTimeout(_idle); _idle=setTimeout(async()=>{ if(getSession()){ const mySess=ssGet(SS.adminSessionId,null); if(mySess)await releaseAdminSession(mySess); clearSession(); location.hash='#/login?reason=idle'; } },IDLE_LIMIT_MS); }
 function startIdle(){ if(!getSession())return; resetIdle(); ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(ev=>{ document.addEventListener(ev,resetIdle,{passive:true}); }); }
 
-/* ============================================================
-   QR И АВАТАР
-   ============================================================ */
 function makeQR(text){
   const data=[]; for(let i=0;i<text.length;i++){ let c=text.charCodeAt(i); if(c<0x80)data.push(c); else if(c<0x800){data.push(0xC0|(c>>6),0x80|(c&0x3F))} else{data.push(0xE0|(c>>12),0x80|((c>>6)&0x3F),0x80|(c&0x3F))} }
   if(data.length>44)return null; const size=29; const mods=Array.from({length:size},()=>Array(size).fill(false)); const reserved=Array.from({length:size},()=>Array(size).fill(false));
@@ -496,16 +456,13 @@ const genCardNumber=()=>String(1+Math.floor(Math.random()*9))+randomDigits(9);
 const genCardCode=()=>randomDigits(3);
 function cropAvatar(file,size,cb){ const r=new FileReader(); r.onload=e=>{ const img=new Image(); img.onload=()=>{ const cv=document.createElement('canvas'); cv.width=size;cv.height=size; const ctx=cv.getContext('2d'); const side=Math.min(img.width,img.height); const sx=(img.width-side)/2,sy=(img.height-side)/2; ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.closePath();ctx.clip(); ctx.drawImage(img,sx,sy,side,side,0,0,size,size); cb(cv.toDataURL('image/jpeg',0.85)); }; img.src=e.target.result; }; r.readAsDataURL(file); }
 
-/* ============================================================
-   ЗАГРУЗКА С ФОТО
-   ============================================================ */
 function getGreeting(name){ const h=new Date().getHours(); let greet; if(h>=5&&h<12)greet='Доброе утро'; else if(h>=12&&h<18)greet='Добрый день'; else if(h>=18&&h<23)greet='Добрый вечер'; else greet='Доброй ночи'; return greet+', '+name+'!'; }
 function getSeasonImage(){ 
   const m=new Date().getMonth(); 
-  if(m>=2&&m<=4) return 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?q=80&w=1920&auto=format&fit=crop'; // Весна (цветение)
-  if(m>=5&&m<=7) return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop'; // Лето (поле)
-  if(m>=8&&m<=10) return 'https://images.unsplash.com/photo-1507371341162-763b8f5c6c6e?q=80&w=1920&auto=format&fit=crop'; // Осень (горы)
-  return 'https://images.unsplash.com/photo-1478719059408-592965723cbc?q=80&w=1920&auto=format&fit=crop'; // Зима (снег)
+  if(m>=2&&m<=4) return 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?q=80&w=1920&auto=format&fit=crop';
+  if(m>=5&&m<=7) return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop';
+  if(m>=8&&m<=10) return 'https://images.unsplash.com/photo-1507371341162-763b8f5c6c6e?q=80&w=1920&auto=format&fit=crop';
+  return 'https://images.unsplash.com/photo-1478719059408-592965723cbc?q=80&w=1920&auto=format&fit=crop';
 }
 async function showLoadingScreen(firstName){
   const screen=document.getElementById('loadingScreen'), greeting=document.getElementById('loadingGreeting'), landscape=document.getElementById('loadingLandscape'), ring=document.getElementById('ringFg'), pct=document.getElementById('loadingPct'), sound=document.getElementById('upfSound');
@@ -514,14 +471,10 @@ async function showLoadingScreen(firstName){
   return new Promise(resolve=>{ let progress=0; const C=264; const iv=setInterval(()=>{ progress=Math.min(100,progress+4+Math.random()*4); ring.style.strokeDashoffset=String(C*(1-progress/100)); pct.textContent=Math.round(progress)+'%'; if(progress>=100){ clearInterval(iv); setTimeout(()=>{ screen.classList.add('hide'); setTimeout(()=>{screen.style.display='none';resolve()},500); },300); } },120); });
 }
 
-/* ============================================================
-   ЛОГИКА ЗАЯВОК И ПЕРЕВОДОВ
-   ============================================================ */
 const REQ_TYPE = { CONTRIBUTE:'contribute_to_treasury', PERSONAL_DEPOSIT:'personal_deposit', PERSONAL_WITHDRAW:'personal_withdraw', PERSONAL_TO_TREASURY:'personal_to_treasury', TAKE_LOAN:'take_loan', RETURN_LOAN:'return_loan', ISSUE_CARD:'issue_card', BLOCK_CARD:'block_card', ADMIN_ADD_TREASURY:'admin_add_treasury', ADMIN_REMOVE_TREASURY:'admin_remove_treasury', ADMIN_ADD_PERSONAL:'admin_add_personal', ADMIN_ADD_DEBT:'admin_add_debt', ADMIN_CANCEL_DEBT:'admin_cancel_debt', ADMIN_BLOCK_USER:'admin_block_user', ADMIN_BLOCK_CARD:'admin_block_card', ADMIN_RESET_ACCOUNT:'admin_reset_account' };
 const ADMIN_COMMENTS={ ok:'Успешно.', noMoney:'Недостаточно средств.', noCard:'Ваша карта заблокирована или не оформлен личный счёт, операция была отклонена.' };
 const REQ_LABELS={ contribute_to_treasury:'Взнос в казну', personal_deposit:'Пополнение личного', personal_withdraw:'Снятие с личного', personal_to_treasury:'Перевод в казну', take_loan:'Взятие займа', return_loan:'Возврат займа', issue_card:'Оформление карты', block_card:'Блокировка карты' };
 
-// ИСПОЛНЕНИЕ ОДОБРЕННЫХ ЗАЯВОК (только те, что требуют подтверждения)
 async function executeApprovedOperation(req){
   const {type,userId,userName}=req; const payload=req.payload||{}; const amt=Number(payload.amount)||0; const ts=nowISO(); const requestId=req.id;
   const pushOp=async(op)=>{ const id=uid(); const full={id,userId,userName,requestId,ts,...op}; const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)fbSet('operations/'+id,full).catch(console.error); return full; };
@@ -544,7 +497,6 @@ async function executeApprovedOperation(req){
   }
 }
 
-// БЫСТРЫЕ ДЕЙСТВИЯ БЕЗ ПОДТВЕРЖДЕНИЯ АДМИНА
 async function instantAction(type,payload){
   const sess=getSession(); if(!sess)throw new Error('Нет сессии'); const me=sess.user; const ts=nowISO();
   const pushOp=async(op)=>{ const id=uid(); const full={id,userId:me.id,userName:me.fio,ts,...op}; const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)fbSet('operations/'+id,full).catch(console.error); return full; };
@@ -570,15 +522,12 @@ async function instantAction(type,payload){
     if(getPersonalBalance(me.id)<amt)throw new Error('Недостаточно средств на личном счёте');
     const target=getUserById(targetId); if(!target)throw new Error('Получатель не найден');
     
-    // Списание у отправителя
     await pushOp({type:'transfer_out',amount:amt,comment:`Перевод для ${target.fio}`,targetUserId:target.id});
-    // Зачисление получателю
     const id=uid(); const full={id,userId:target.id,userName:target.fio,ts,type:'transfer_in',amount:amt,comment:`Перевод от ${me.fio}`,targetUserId:me.id};
     const ops=getOps();ops.push(full);saveOps(ops); if(_fbReady)fbSet('operations/'+id,full).catch(console.error);
   }
 }
 
-// СОЗДАНИЕ ЗАЯВКИ (требует подтверждения)
 async function createRequest(type,payload){
   const sess=getSession(); if(!sess)throw new Error('Нет сессии'); const me=sess.user; if(me.blocked)throw new Error('Аккаунт заблокирован');
   if([REQ_TYPE.CONTRIBUTE,REQ_TYPE.RETURN_LOAN].includes(type)){ const bal=getPersonalBalance(me.id); const amt=Number(payload.amount)||0; if(amt>bal)throw new Error('Недостаточно средств на личном счёте. Доступно: '+fmtMoney(bal)); }
@@ -627,10 +576,7 @@ async function adminAction(type,payload){
   }
   toast('Операция выполнена.','ok');
 }
-<script>
-/* ============================================================
-   РОУТЕР И КАРКАС С ИКОНКАМИ (SVG)
-   ============================================================ */
+
 function parseHash(){ const h=location.hash.replace(/^#\/?/,''); const [path,qs]=h.split('?'); const params=new URLSearchParams(qs||''); return {path:path||(getSession()?'index':'login'),params}; }
 function navigate(path,params){ let h='#/'+path; if(params){ const q=new URLSearchParams(params).toString(); if(q)h+='?'+q; } if(location.hash===h)route(); else location.hash=h; }
 
@@ -650,7 +596,6 @@ async function route(){
 const routes={ 'login':renderLogin, 'index':renderIndex, 'personal':renderPersonal, 'card':renderCard, 'account':renderAccount };
 window.addEventListener('hashchange',()=>route());
 
-// SVG ИКОНКИ (Минималистичные контуры)
 const ICONS = {
   home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
   wallet: `<svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>`,
@@ -693,16 +638,12 @@ function bindShell(activePage){
   if(bottomNav){ bottomNav.querySelectorAll('[data-nav]').forEach(handleNav); handleLogout(bottomNav.querySelector('[data-logout]')); }
 }
 
-/* ============================================================
-   ЭКРАН ВХОДА И PIN
-   ============================================================ */
 async function renderLogin(params){
   const remembered=lsGet(LS.remembered,null); let rememberedUser=null; if(remembered&&remembered.userId)rememberedUser=getUserById(remembered.userId);
   const reason=params.get('reason'); const showPin=!!rememberedUser;
 
   document.getElementById('app').innerHTML=`
   <div class="auth-layout">
-    <!-- ЭКРАН PIN-КОДА -->
     <div id="pinScreen" style="display:${showPin?'flex':'none'};">
       <div class="pin-content">
         <div class="pin-top">
@@ -726,7 +667,6 @@ async function renderLogin(params){
       </div>
     </div>
 
-    <!-- ЭКРАН EMAIL -->
     <div id="fullScreen" style="display:${showPin?'none':'block'}; width:100%; max-width:420px;">
       <div class="auth-box">
         <div class="auth-brand">
@@ -839,9 +779,6 @@ async function renderLogin(params){
   }
 }
 
-/* ============================================================
-   ГЛАВНАЯ
-   ============================================================ */
 async function renderIndex(){
   const sess=getSession();if(!sess)return; const me=sess.user; const isAdmin=me.role==='admin';
 
@@ -961,9 +898,6 @@ async function renderIndex(){
   renderAll();
 }
 
-/* ============================================================
-   ЛИЧНЫЙ СЧЁТ (с функцией перевода)
-   ============================================================ */
 async function renderPersonal(){
   const sess=getSession();if(!sess)return; const me=sess.user;
   document.getElementById('app').innerHTML=shell('personal',`
@@ -1016,9 +950,6 @@ async function renderPersonal(){
   render();
 }
 
-/* ============================================================
-   КАРТА
-   ============================================================ */
 async function renderCard(){
   const sess=getSession();if(!sess)return; const me=sess.user;
   document.getElementById('app').innerHTML=shell('card',`
@@ -1045,9 +976,6 @@ async function renderCard(){
   render();
 }
 
-/* ============================================================
-   АККАУНТ
-   ============================================================ */
 async function renderAccount(){
   const sess=getSession();if(!sess)return; let me=sess.user;
   const savedTheme = localStorage.getItem('upf_theme') || 'light'; document.documentElement.setAttribute('data-theme', savedTheme);
@@ -1077,9 +1005,6 @@ async function renderAccount(){
   $('btnChangePin').addEventListener('click',async()=>{ const pass=$('pinPass').value,pin=$('newPin').value; if(!verifyHash(pass,me.pass.salt,me.pass.hash)){toast('Неверный пароль','err');return} if(!isPin5(pin)){toast('5 цифр','err');return} const users=getUsers();const u=users.find(x=>x.id===me.id);if(!u)return; u.pin=makeHash(pin);saveUsers(users); if(_fbReady)await fbUpdate('users/'+u.id,{pin:u.pin}); me=getUserById(me.id); $('pinPass').value='';$('newPin').value=''; toast('PIN сменён','ok'); });
 }
 
-/* ============================================================
-   ИНИЦИАЛИЗАЦИЯ
-   ============================================================ */
 (async function init(){
   if(!lsGet(LS.config,null)){ lsSet(LS.config,{loanPercent:LOAN_PERCENT,loanTermDays:LOAN_TERM_DAYS}); }
   try{ await ensureFirebaseAuth(); await syncFromFirebase(); await ensureAdminExists(); await syncFromFirebase(); startRealtimeSync(); }catch(e){ console.warn('Firebase offline',e.message); }
