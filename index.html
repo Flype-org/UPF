@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Семейная касса УПФ (УралПромФонд)</title>
-<link rel="icon" type="image/png" href="icon.png">
+
+<!-- ИКОНКИ САЙТА -->
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon-32x32.png">
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -776,7 +779,6 @@ window.doAction = async (type) => {
   closeModal(); 
 
   if(type === 'deposit') {
-    // Вместо прямого пополнения создаем заявку
     const reqId = uid();
     const req = { id: reqId, type: 'deposit', userId: me.id, userName: me.fio, amount: amt, ts: ts, status: 'pending' };
     await db.ref('requests/' + reqId).set(req);
@@ -939,7 +941,8 @@ async function renderAccount() {
   const sess = getSession(); if(!sess) return; let me = sess.user;
   const savedTheme = localStorage.getItem('upf_theme') || 'light'; document.documentElement.setAttribute('data-theme', savedTheme);
   
-      <h2 class="page-title">Аккаунт</h2>
+  document.getElementById('app').innerHTML = shell('account', `
+    <h2 class="page-title">Аккаунт</h2>
     <div class="theme-toggle">
       <span>Тёмная тема</span>
       <label class="switch"><input type="checkbox" id="themeToggle" ${savedTheme === 'dark' ? 'checked' : ''}><span class="slider"></span></label>
@@ -973,7 +976,7 @@ async function renderAccount() {
       <div class="field"><label>Новый PIN (5 цифр)</label><input type="password" id="accPin" maxlength="5"></div>
       <button class="btn" onclick="updateAccount('pin')">Сменить</button>
     </div>
-  
+  `);
   bindShell(); startIdle();
   
   const toggle = document.getElementById('themeToggle');
@@ -1023,7 +1026,6 @@ window.updateAccount = async (type) => {
     if (!newFio) return toast('Введите ФИО', 'err');
     updates.fio = newFio;
   } 
-  
   else if(type === 'pass') {
     const oldP = document.getElementById('oldPass').value;
     const newP = document.getElementById('accPass').value;
@@ -1033,7 +1035,6 @@ window.updateAccount = async (type) => {
     
     updates.pass = makeHash(newP);
   } 
-  
   else if(type === 'pin') {
     const oldP = document.getElementById('oldPinPass').value;
     const newPin = document.getElementById('accPin').value;
