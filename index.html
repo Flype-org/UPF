@@ -347,10 +347,10 @@ function startIdle(){ if(!getSession())return; resetIdle(); ['mousemove','moused
 function getGreeting(name){ const h=new Date().getHours(); let greet; if(h>=5&&h<12)greet='Доброе утро'; else if(h>=12&&h<18)greet='Добрый день'; else if(h>=18&&h<23)greet='Добрый вечер'; else greet='Доброй ночи'; return greet+', '+name+'!'; }
 function getSeasonImage(){ 
   const m=new Date().getMonth(); 
-  if(m>=2&&m<=4) return 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?q=80&w=1920&auto=format&fit=crop';
-  if(m>=5&&m<=7) return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop';
-  if(m>=8&&m<=10) return 'https://images.unsplash.com/photo-1507371341162-763b8f5c6c6e?q=80&w=1920&auto=format&fit=crop';
-  return 'https://images.unsplash.com/photo-1478719059408-592965723cbc?q=80&w=1920&auto=format&fit=crop';
+  if(m>=2&&m<=4) return 'spring.jpg';
+  if(m>=5&&m<=7) return 'summer.jpg';
+  if(m>=8&&m<=10) return 'autumn.jpg';
+  return 'winter.jpg';
 }
 async function showLoadingScreen(firstName){
   const screen=document.getElementById('loadingScreen'), greeting=document.getElementById('loadingGreeting'), landscape=document.getElementById('loadingLandscape'), ring=document.getElementById('ringFg'), pct=document.getElementById('loadingPct'), sound=document.getElementById('upfSound');
