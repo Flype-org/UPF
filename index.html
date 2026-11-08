@@ -514,7 +514,11 @@ function shell(activePage,bodyHTML){
 function bindShell(){
   document.querySelectorAll('[data-nav]').forEach(a => { a.addEventListener('click', e => { e.preventDefault(); navigate(a.dataset.nav); }); });
 }
-function logout(){ clearSession(); navigate('login', {reason: 'logout'}); }
+function logout(){ 
+  clearSession(); // Сбрасываем сессию (выходим из аккаунта)
+  // НЕ удаляем LS.remembered (память о последнем входе)
+  navigate('login', {reason: 'logout'}); 
+}
 
 /* ============================================================
    ВХОД И РЕГИСТРАЦИЯ
