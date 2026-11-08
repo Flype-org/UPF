@@ -247,7 +247,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
-let USERS = {}, OPS = {}, LOANS = {}, CARDS = {}, CONFIG = {}, MESSAGES = {};
+let USERS = {}, OPS = {}, LOANS = {}, CARDS = {}, CONFIG = {}, MESSAGES = {}, REQS = {};
 let DATA_READY = false;
 
 const SS = { session:'upf_session' };
@@ -312,10 +312,10 @@ function startIdle(){ if(!getSession())return; resetIdle(); ['mousemove','moused
 function getGreeting(name){ const h=new Date().getHours(); let greet; if(h>=5&&h<12)greet='Доброе утро'; else if(h>=12&&h<18)greet='Добрый день'; else if(h>=18&&h<23)greet='Добрый вечер'; else greet='Доброй ночи'; return greet+', '+name+'!'; }
 function getSeasonImage(){ 
   const m=new Date().getMonth(); 
-  if(m>=2&&m<=4) return 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?q=80&w=1920&auto=format&fit=crop';
-  if(m>=5&&m<=7) return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop';
-  if(m>=8&&m<=10) return 'https://images.unsplash.com/photo-1507371341162-763b8f5c6c6e?q=80&w=1920&auto=format&fit=crop';
-  return 'https://images.unsplash.com/photo-1478719059408-592965723cbc?q=80&w=1920&auto=format&fit=crop';
+  if(m>=2&&m<=4) return 'spring.jpg';
+  if(m>=5&&m<=7) return 'summer.jpg';
+  if(m>=8&&m<=10) return 'autumn.jpg';
+  return 'winter.jpg';
 }
 async function showLoadingScreen(firstName){
   const screen=document.getElementById('loadingScreen'), greeting=document.getElementById('loadingGreeting'), landscape=document.getElementById('loadingLandscape'), ring=document.getElementById('ringFg'), pct=document.getElementById('loadingPct'), sound=document.getElementById('upfSound');
@@ -331,7 +331,8 @@ function initFirebaseSync() {
   db.ref('loans').on('value', s => { LOANS = s.val() || {}; if(DATA_READY) route(); });
   db.ref('cards').on('value', s => { CARDS = s.val() || {}; if(DATA_READY) route(); });
   db.ref('config').on('value', s => { CONFIG = s.val() || {}; if(DATA_READY) route(); });
-  db.ref('messages').on('value', s => { 
+  db.ref('requests').on('value', s => { REQS = s.val() || {}; if(DATA_READY) route(); });
+  db.ref('messages').on('value', s => {
     MESSAGES = s.val() || {}; 
     if(DATA_READY) checkNewMessages(); 
   });
@@ -776,14 +777,17 @@ window.doAction = async (type) => {
   if(CONFIG.depositsDisabled) { toast('Администратор ограничил операции.', 'err'); return; }
   
   const me = getSession().user; const ts = nowISO();
-  const id = uid();
   closeModal(); 
 
   if(type === 'deposit') {
-    await db.ref('operations/'+id).set({ id, userId: me.id, userName: me.fio, type: 'personal_deposit', amount: amt, ts });
-    toast('Пополнено', 'ok');
+    // Вместо прямого пополнения создаем заявку
+    const reqId = uid();
+    const req = { id: reqId, type: 'deposit', userId: me.id, userName: me.fio, amount: amt, ts: ts, status: 'pending' };
+    await db.ref('requests/' + reqId).set(req);
+    toast('Заявка на пополнение отправлена админу', 'ok');
   } else if(type === 'withdraw') {
     if(getPersonalBalance(me.id) < amt) { toast('Недостаточно средств', 'err'); return; }
+    const id = uid();
     await db.ref('operations/'+id).set({ id, userId: me.id, userName: me.fio, type: 'personal_withdraw', amount: amt, ts });
     toast('Снято', 'ok');
   }
@@ -1079,9 +1083,32 @@ async function renderAdminPanel() {
   const me = sess.user;
   
   const usersOptions = Object.values(USERS).map(u => `<option value="${u.id}">${esc(u.fio)} ${u.blocked ? '(Заблокирован)' : ''}</option>`).join('');
+  const pendingReqs = Object.values(REQS || {}).filter(r => r.status === 'pending');
   
   document.getElementById('app').innerHTML = shell('admin', `
     <h2 class="page-title">Админ-панель</h2>
+
+    ${pendingReqs.length > 0 ? `
+    <div class="card" style="border: 2px solid var(--sber-green);">
+      <h3 style="margin-top:0; color:var(--sber-green);">Заявки на пополнение</h3>
+      <table class="tbl" style="width:100%;">
+        <thead><tr><th>Дата</th><th>Кто</th><th>Сумма</th><th>Действия</th></tr></thead>
+        <tbody>
+          ${pendingReqs.map(r => `
+            <tr>
+              <td>${fmtDateTime(r.ts)}</td>
+              <td>${esc(r.userName)}</td>
+              <td>${fmtMoney(r.amount)}</td>
+              <td>
+                <button class="btn green small" onclick="handleRequest('${r.id}', 'approve')">Разрешить</button>
+                <button class="btn red small" onclick="openRejectModal('${r.id}')">Отклонить</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    ` : ''}
 
     <div class="card">
       <h3 style="margin-top:0">Глобальные ограничения</h3>
@@ -1096,35 +1123,13 @@ async function renderAdminPanel() {
     </div>
 
     <div class="card">
-      <h3 style="margin-top:0">Рассылка сообщений</h3>
-      <div class="field"><label>Кому</label>
-        <select id="msgTarget">
-          <option value="all">Всем пользователям</option>
-          ${usersOptions}
-        </select>
-      </div>
-      <div class="field"><label>Текст сообщения</label>
-        <input type="text" id="msgText" placeholder="Введите текст...">
-      </div>
-      <button class="btn block" onclick="sendGlobalMessage()">Отправить</button>
-    </div>
-
-    <div class="card">
-      <h3 style="margin-top:0">Управление казной</h3>
-      <div class="field"><label>Сумма</label><input type="number" id="admTreasAmount" placeholder="Сумма"></div>
-      <div class="btn-row">
-        <button class="btn green small" onclick="adminActionTreasury('add')">Внести</button>
-        <button class="btn neutral small" onclick="adminActionTreasury('remove')">Вынести</button>
-      </div>
-    </div>
-
-    <div class="card">
       <h3 style="margin-top:0">Участник</h3>
       <div class="field"><select id="admTargetUser">${usersOptions}</select></div>
       <div class="field"><label>Сумма</label><input type="number" id="admUserAmount" placeholder="Сумма"></div>
       <div class="btn-row">
         <button class="btn ghost small" onclick="adminActionUser('personal')">Пополнить личный</button>
         <button class="btn ghost small" onclick="adminActionUser('debt')">Ввести долг</button>
+        <button class="btn neutral small" onclick="adminActionUser('cancelDebt')">Аннулировать долг</button>
       </div>
       <div class="btn-row">
         <button class="btn red small" onclick="adminActionUser('block')">Заблокировать аккаунт</button>
@@ -1135,65 +1140,62 @@ async function renderAdminPanel() {
   bindShell(); startIdle();
 }
 
-window.saveGlobalConfig = async () => {
-  const cfg = {
-    loginDisabled: document.getElementById('cfgLogin').checked,
-    transfersDisabled: document.getElementById('cfgTransfers').checked,
-    depositsDisabled: document.getElementById('cfgDeposits').checked,
-    loansDisabled: document.getElementById('cfgLoans').checked,
-    returnsDisabled: document.getElementById('cfgReturns').checked
-  };
-  await db.ref('config').update(cfg);
-  toast('Настройки сохранены', 'ok');
-  renderAdminPanel();
-};
-
-window.sendGlobalMessage = async () => {
-  const target = document.getElementById('msgTarget').value;
-  const text = document.getElementById('msgText').value.trim();
-  if (!text) return toast('Введите текст', 'err');
+// Обработка заявок (Разрешить)
+window.handleRequest = async (reqId, action) => {
+  const req = REQS[reqId];
+  if(!req) return;
   
-  const id = uid();
-  await db.ref('messages/' + id).set({ id, target, text, ts: nowISO(), by: getSession().user.fio });
-  toast('Сообщение отправлено', 'ok');
-  document.getElementById('msgText').value = '';
-};
-
-window.adminActionTreasury = async (type) => {
-  const amt = Number(document.getElementById('admTreasAmount').value);
-  if(!amt || amt <= 0) return toast('Введите сумму', 'err');
-  const id = uid();
-  const opType = type === 'add' ? 'contribute' : 'admin_treasury_out';
-  await db.ref('operations/'+id).set({ id, userId: getSession().user.id, userName: 'Админ', type: opType, amount: amt, ts: nowISO() });
-  toast('Казна обновлена', 'ok'); renderAdminPanel();
-};
-
-window.adminActionUser = async (type) => {
-  const targetId = document.getElementById('admTargetUser').value;
-  const amt = Number(document.getElementById('admUserAmount').value);
-  const target = USERS[targetId];
-  if(!target) return;
-  
-  if(type === 'personal') {
-    if(!amt || amt <= 0) return toast('Введите сумму', 'err');
-    const id = uid();
-    await db.ref('operations/'+id).set({ id, userId: target.id, userName: target.fio, type: 'personal_deposit', amount: amt, ts: nowISO(), comment: 'От админа' });
-    toast('Личный счёт пополнен', 'ok');
-  } else if(type === 'debt') {
-    if(!amt || amt <= 0) return toast('Введите сумму', 'err');
-    const loanId = uid();
-    const due = new Date(); due.setDate(due.getDate() + 30);
-    const updates = {};
-    updates['loans/'+loanId] = { id: loanId, userId: target.id, userName: target.fio, amount: amt, percent: 0, takenAt: nowISO(), dueDate: due.toISOString(), status: 'active', byAdmin: true };
-    await db.ref().update(updates);
-    toast('Долг введён', 'ok');
-  } else if(type === 'block') {
-    await db.ref('users/'+target.id).update({ blocked: true });
-    toast('Аккаунт заблокирован', 'ok');
-  } else if(type === 'unblock') {
-    await db.ref('users/'+target.id).update({ blocked: false });
-    toast('Аккаунт разблокирован', 'ok');
+  if(action === 'approve') {
+    // Создаем операцию пополнения
+    const opId = uid();
+    await db.ref('operations/' + opId).set({ 
+      id: opId, userId: req.userId, userName: req.userName, 
+      type: 'personal_deposit', amount: req.amount, ts: nowISO(), 
+      comment: 'Пополнение (одобрено админом)' 
+    });
+    // Удаляем заявку
+    await db.ref('requests/' + reqId).remove();
+    toast('Заявка одобрена', 'ok');
+    renderAdminPanel();
   }
+};
+
+// Модалка отклонения с выбором причины
+window.openRejectModal = (reqId) => {
+  showModal('Отклонение заявки', `
+    <div class="field">
+      <label>Причина</label>
+      <select id="rejectReason">
+        <option value="Отклонено. Ваших средств нет в кассе отделения.">Отклонено. Ваших средств нет в кассе отделения.</option>
+        <option value="Отклонено решением Администратора.">Отклонено решением Администратора.</option>
+        <option value="custom">-- Своя причина --</option>
+      </select>
+    </div>
+    <div class="field" id="customReasonBox" style="display:none;">
+      <label>Свой текст</label>
+      <input type="text" id="customReason">
+    </div>
+    <button class="btn red block" onclick="confirmReject('${reqId}')">Отклонить</button>
+  `);
+  
+  document.getElementById('rejectReason').addEventListener('change', (e) => {
+    document.getElementById('customReasonBox').style.display = e.target.value === 'custom' ? 'block' : 'none';
+  });
+};
+
+window.confirmReject = async (reqId) => {
+  const selectVal = document.getElementById('rejectReason').value;
+  const customVal = document.getElementById('customReason').value;
+  const reason = selectVal === 'custom' ? (customVal || 'Без причины') : selectVal;
+  
+  const req = REQS[reqId];
+  await db.ref('requests/' + reqId).remove();
+  await db.ref('messages/' + uid()).set({
+    id: uid(), target: req.userId, text: reason, ts: nowISO(), by: 'Администратор'
+  });
+  
+  closeModal();
+  toast('Заявка отклонена', 'ok');
   renderAdminPanel();
 };
 
@@ -1215,6 +1217,100 @@ async function renderPersonal(){
   
   bindShell(); startIdle();
 }
+
+window.adminActionUser = async (type) => {
+  const targetId = document.getElementById('admTargetUser').value;
+  const amt = Number(document.getElementById('admUserAmount').value);
+  const target = USERS[targetId];
+  if(!target) return;
+  
+  if(type === 'personal') {
+    if(!amt || amt <= 0) return toast('Введите сумму', 'err');
+    const id = uid();
+    await db.ref('operations/'+id).set({ id, userId: target.id, userName: target.fio, type: 'personal_deposit', amount: amt, ts: nowISO(), comment: 'От админа' });
+    toast('Личный счёт пополнен', 'ok');
+  } 
+  else if(type === 'debt') {
+    if(!amt || amt <= 0) return toast('Введите сумму', 'err');
+    const loanId = uid();
+    const due = new Date(); due.setDate(due.getDate() + 30);
+    const updates = {};
+    updates['loans/'+loanId] = { id: loanId, userId: target.id, userName: target.fio, amount: amt, percent: 0, takenAt: nowISO(), dueDate: due.toISOString(), status: 'active', byAdmin: true };
+    await db.ref().update(updates);
+    toast('Долг введён', 'ok');
+  } 
+  else if(type === 'cancelDebt') {
+    const loan = getActiveLoan(target.id);
+    if(!loan) return toast('У пользователя нет активного долга', 'err');
+    await db.ref('loans/' + loan.id).update({ status: 'cancelled' });
+    toast('Долг аннулирован', 'ok');
+  } 
+  else if(type === 'block') {
+    await db.ref('users/'+target.id).update({ blocked: true });
+    toast('Аккаунт заблокирован', 'ok');
+  } 
+  else if(type === 'unblock') {
+    await db.ref('users/'+target.id).update({ blocked: false });
+    toast('Аккаунт разблокирован', 'ok');
+  }
+  
+  renderAdminPanel();
+};
+
+window.handleRequest = async (reqId, action) => {
+  const req = REQS[reqId];
+  if(!req) return;
+  
+  if(action === 'approve') {
+    const opId = uid();
+    await db.ref('operations/' + opId).set({ 
+      id: opId, userId: req.userId, userName: req.userName, 
+      type: 'personal_deposit', amount: req.amount, ts: nowISO(), 
+      comment: 'Пополнение (одобрено админом)' 
+    });
+    await db.ref('requests/' + reqId).remove();
+    toast('Заявка одобрена', 'ok');
+    renderAdminPanel();
+  }
+};
+
+window.openRejectModal = (reqId) => {
+  showModal('Отклонение заявки', `
+    <div class="field">
+      <label>Причина</label>
+      <select id="rejectReason">
+        <option value="Отклонено. Ваших средств нет в кассе отделения.">Отклонено. Ваших средств нет в кассе отделения.</option>
+        <option value="Отклонено решением Администратора.">Отклонено решением Администратора.</option>
+        <option value="custom">-- Своя причина --</option>
+      </select>
+    </div>
+    <div class="field" id="customReasonBox" style="display:none;">
+      <label>Свой текст</label>
+      <input type="text" id="customReason">
+    </div>
+    <button class="btn red block" onclick="confirmReject('${reqId}')">Отклонить</button>
+  `);
+  
+  document.getElementById('rejectReason').addEventListener('change', (e) => {
+    document.getElementById('customReasonBox').style.display = e.target.value === 'custom' ? 'block' : 'none';
+  });
+};
+
+window.confirmReject = async (reqId) => {
+  const selectVal = document.getElementById('rejectReason').value;
+  const customVal = document.getElementById('customReason').value;
+  const reason = selectVal === 'custom' ? (customVal || 'Без причины') : selectVal;
+  
+  const req = REQS[reqId];
+  await db.ref('requests/' + reqId).remove();
+  await db.ref('messages/' + uid()).set({
+    id: uid(), target: req.userId, text: reason, ts: nowISO(), by: 'Администратор'
+  });
+  
+  closeModal();
+  toast('Заявка отклонена', 'ok');
+  renderAdminPanel();
+};
 
 initFirebaseSync();
 if(!location.hash) location.replace('#/login');
