@@ -520,7 +520,8 @@ function logout(){ clearSession(); navigate('login', {reason: 'logout'}); }
    ВХОД И РЕГИСТРАЦИЯ
    ============================================================ */
 async function renderLogin(params){
-  const reason = params.get('reason');
+  if(!params) params = new URLSearchParams(window.location.search);
+  const reason = params.get('reason') || null;
   document.getElementById('app').innerHTML=`
   <div class="auth-layout">
     <div class="auth-box">
