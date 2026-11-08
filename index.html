@@ -452,7 +452,7 @@ async function renderLogin(params){
           </div>
           <div id="pinLocked" style="display:none; color:#fff; text-align:center; padding:16px; background:rgba(255,0,0,0.3); border-radius:12px; margin-bottom:20px;">
             <div id="pinLockText">Вход заблокирован.</div>
-            <button class="btn ghost small" style="margin-top:10px; color:#fff; border-color:#fff;" onclick="localStorage.removeItem('upf_remembered'); window.location.reload();">Войти по email и паролю</button>
+            <button class="btn ghost small" style="margin-top:10px; color:#000; border-color:#fff; background:#fff;" onclick="localStorage.removeItem('upf_remembered'); window.location.reload();">Войти по email и паролю</button>
           </div>
           <div class="pin-pad" id="pinPad">
             <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
