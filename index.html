@@ -40,6 +40,13 @@
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
 
 *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
 html,body{margin:0;padding:0;font-family:'Inter', sans-serif;background:var(--bg);color:var(--text-main);-webkit-font-smoothing:antialiased;min-height:100%;transition: background .3s;}
@@ -109,12 +116,12 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .treasury .sub{font-size:13px; opacity:.8;}
 
 .members-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;}
-.member-circle{background:var(--card-bg); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; align-items:flex-start; box-shadow:var(--shadow); cursor:pointer;}
+.member-circle{background:var(--card-bg); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; align-items:flex-start; box-shadow:var(--shadow); cursor:pointer; overflow:hidden;}
 .member-circle .ava{width:48px;height:48px;border-radius:50%;margin-bottom:12px;background:var(--input-bg);display:flex;align-items:center;justify-content:center;font-weight:600;overflow:hidden;}
 .member-circle .ava img{width:100%;height:100%;object-fit:cover;}
-.member-circle .mname{font-size:15px; font-weight:600; margin-bottom:4px;}
+.member-circle .mname{font-size:15px; font-weight:600; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;}
 .member-circle .mcontrib{font-size:13px; color:var(--text-muted); margin-bottom:8px;}
-.member-circle .mdebt{font-size:12px; color:var(--red); font-weight:600; background:var(--red-bg); padding:4px 8px; border-radius:8px;}
+.member-circle .mdebt{font-size:12px; color:var(--red); font-weight:600; background:var(--red-bg); padding:4px 8px; border-radius:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
 .member-circle .mdebt.none{color:var(--sber-green); background:var(--sber-green-bg);}
 
 .table-wrap{overflow-x:auto; border-radius:var(--radius); background:var(--card-bg); box-shadow:var(--shadow);}
@@ -144,6 +151,7 @@ table.tbl th{color:var(--text-muted);font-size:12px;text-transform:uppercase;}
 .pin-dots .dot { width: 48px; height: 56px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
 .pin-dots .dot::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: #fff; opacity: 0; transition: opacity 0.2s; }
 .pin-dots .dot.filled::after { opacity: 1; }
+.pin-dots.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .pin-pad button { height: 64px; border: none; border-radius: 16px; background: #fff; color: #000; font-size: 24px; font-weight: 500; cursor: pointer; }
 .pin-pad button.fn { background: transparent; color: #fff; font-size: 14px; font-weight: 500; }
@@ -166,11 +174,14 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
 .bottom-nav a svg { width: 24px; height: 24px; max-width: 24px; max-height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .bottom-nav .logout-btn { color: var(--red); }
 
+.drawer { display: none !important; }
+.drawer-overlay { display: none !important; }
+
 @media (min-width: 900px) {
   body { padding-bottom: 0; padding-left: 260px; }
   header.topbar { display: none; }
   .bottom-nav { display: none; }
-  .drawer {display: flex; position: fixed; top: 0; left: 0; bottom: 0; width: 260px; background: var(--bg); flex-direction: column; padding: 24px 16px; border-right: 1px solid var(--border); z-index: 100;}
+  .drawer {display: flex !important; position: fixed; top: 0; left: 0; bottom: 0; width: 260px; background: var(--bg); flex-direction: column; padding: 24px 16px; border-right: 1px solid var(--border); z-index: 100;}
   .drawer-head { padding: 0 12px 24px; margin-bottom: 16px;}
   .drawer-head .brand { font-size: 16px; font-weight: 700; }
   .drawer nav { flex: 1; }
@@ -192,6 +203,14 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
 .loading-ring .ring-bg{fill:none;stroke:rgba(255,255,255,.2);stroke-width:6;}
 .loading-ring .ring-fg{fill:none;stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-dasharray:264;stroke-dashoffset:264;transition:stroke-dashoffset .25s linear;}
 .loading-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;}
+
+/* Анимация загрузки в модалке */
+.loader-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; }
+.loader-svg { width: 80px; height: 80px; transform: rotate(-90deg); }
+.loader-svg .circle-bg { fill: none; stroke: var(--input-bg); stroke-width: 4; }
+.loader-svg .circle-fg { fill: none; stroke: var(--sber-green); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 226; stroke-dashoffset: 226; transition: stroke-dashoffset 0.1s linear; }
+.loader-svg .checkmark { fill: none; stroke: var(--sber-green); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 48; stroke-dashoffset: 48; transition: stroke-dashoffset 0.4s ease 0.2s; }
+.loader-text { margin-top: 20px; font-size: 16px; font-weight: 500; color: var(--text-main); }
 </style>
 </head>
 <body>
@@ -244,7 +263,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
-let USERS = {}, OPS = {}, LOANS = {}, CARDS = {};
+let USERS = {}, OPS = {}, LOANS = {}, CARDS = {}, CONFIG = {}, MESSAGES = {};
 let DATA_READY = false;
 
 const SS = { session:'upf_session' };
@@ -309,10 +328,10 @@ function startIdle(){ if(!getSession())return; resetIdle(); ['mousemove','moused
 function getGreeting(name){ const h=new Date().getHours(); let greet; if(h>=5&&h<12)greet='Доброе утро'; else if(h>=12&&h<18)greet='Добрый день'; else if(h>=18&&h<23)greet='Добрый вечер'; else greet='Доброй ночи'; return greet+', '+name+'!'; }
 function getSeasonImage(){ 
   const m=new Date().getMonth(); 
-  if(m>=2&&m<=4) return 'spring.jpg';
-  if(m>=5&&m<=7) return 'summer.jpg';
-  if(m>=8&&m<=10) return 'autumn.jpg';
-  return 'winter.jpg';
+  if(m>=2&&m<=4) return 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?q=80&w=1920&auto=format&fit=crop';
+  if(m>=5&&m<=7) return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop';
+  if(m>=8&&m<=10) return 'https://images.unsplash.com/photo-1507371341162-763b8f5c6c6e?q=80&w=1920&auto=format&fit=crop';
+  return 'https://images.unsplash.com/photo-1478719059408-592965723cbc?q=80&w=1920&auto=format&fit=crop';
 }
 async function showLoadingScreen(firstName){
   const screen=document.getElementById('loadingScreen'), greeting=document.getElementById('loadingGreeting'), landscape=document.getElementById('loadingLandscape'), ring=document.getElementById('ringFg'), pct=document.getElementById('loadingPct'), sound=document.getElementById('upfSound');
@@ -327,6 +346,11 @@ function initFirebaseSync() {
   db.ref('operations').on('value', s => { OPS = s.val() || {}; if(DATA_READY) route(); });
   db.ref('loans').on('value', s => { LOANS = s.val() || {}; if(DATA_READY) route(); });
   db.ref('cards').on('value', s => { CARDS = s.val() || {}; if(DATA_READY) route(); });
+  db.ref('config').on('value', s => { CONFIG = s.val() || {}; if(DATA_READY) route(); });
+  db.ref('messages').on('value', s => { 
+    MESSAGES = s.val() || {}; 
+    if(DATA_READY) checkNewMessages(); 
+  });
   DATA_READY = true;
 
   db.ref('users').orderByChild('email').equalTo(ADMIN_EMAIL).once('value').then(snap => {
@@ -375,7 +399,7 @@ function shell(activePage,bodyHTML){
   <header class="topbar"><h1>Семейная касса УПФ</h1><div class="user-chip">${me ? esc(me.lastname||me.fio) : ''}</div></header>
   
   <aside class="drawer" id="drawer">
-    <div class="drawer-head"><div class="brand">Семейная касса УПФ</div></div>
+    <div class="drawer-head" style="display:none;"></div>
     <nav>
       <a data-nav="index" class="${activePage==='index'?'active':''}">${ICONS.home} Главная</a>
       <a data-nav="personal" class="${activePage==='personal'?'active':''}">${ICONS.wallet} Личный счёт</a>
@@ -409,6 +433,17 @@ async function renderLogin(params){
   const rememberedId = localStorage.getItem('upf_remembered');
   const reason = params ? params.get('reason') : null;
 
+  if (CONFIG.loginDisabled) {
+    document.getElementById('app').innerHTML = `
+      <div class="auth-layout">
+        <div class="auth-box center" style="text-align:center; padding: 40px;">
+          <h2 style="color:var(--red); margin-bottom: 20px;">Доступ ограничен</h2>
+          <p>Администратор ограничил доступ к входу, пожалуйста подождите.</p>
+        </div>
+      </div>`;
+    return;
+  }
+
   if (rememberedId && !reason) {
     const user = USERS[rememberedId];
     if (user) {
@@ -417,8 +452,7 @@ async function renderLogin(params){
         <div class="pin-content">
           <div class="pin-top">
             <div class="ava-small">${initials(user.fio)}</div>
-            <div class="uname">${esc(user.fio)}</div>
-            <div class="uhint">Введите PIN-код</div>
+            <div class="uname">${esc(user.name)} ${esc(user.lastname)}</div>
             <div class="pin-dots" id="pinDots">
               <span class="dot"></span><span class="dot"></span><span class="dot"></span>
               <span class="dot"></span><span class="dot"></span>
@@ -453,6 +487,10 @@ async function renderLogin(params){
             await showLoadingScreen(user.name || user.fio.split(' ')[0]);
             navigate('index');
           } else {
+            const dotsContainer = document.getElementById('pinDots');
+            dotsContainer.classList.add('shake');
+            setTimeout(() => dotsContainer.classList.remove('shake'), 400);
+
             pinAttempts++; pinBuf = ''; updateDots();
             if(pinAttempts >= 3) {
               document.getElementById('pinLocked').style.display = 'block';
@@ -570,6 +608,34 @@ function getUserCard(userId){
   return null;
 }
 
+function checkNewMessages() {
+  const sess = getSession();
+  if (!sess) return;
+  const me = sess.user;
+  const seenIds = JSON.parse(localStorage.getItem('seen_messages') || '[]');
+  
+  for (const id in MESSAGES) {
+    const msg = MESSAGES[id];
+    if ((msg.target === 'all' || msg.target === me.id) && !seenIds.includes(id)) {
+      showModal('Сообщение от администратора', `
+        <p style="font-size:16px; line-height:1.5;">${esc(msg.text)}</p>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:20px;">${fmtDateTime(msg.ts)}</div>
+        <button class="btn block" style="margin-top:20px;" onclick="closeModal(); markMessageSeen('${id}')">Понятно</button>
+      `);
+      break; 
+    }
+  }
+}
+
+window.markMessageSeen = (id) => {
+  const seenIds = JSON.parse(localStorage.getItem('seen_messages') || '[]');
+  if (!seenIds.includes(id)) {
+    seenIds.push(id);
+    localStorage.setItem('seen_messages', JSON.stringify(seenIds));
+  }
+  closeModal();
+};
+
 async function renderIndex(){
   const sess = getSession(); if(!sess) return; const me = sess.user;
   document.getElementById('app').innerHTML = shell('index', `
@@ -648,17 +714,18 @@ window.executeTreasuryAction = async (type) => {
   const id = uid();
   
   if(type === 'deposit') {
+    if(CONFIG.depositsDisabled) { toast('Администратор ограничил взносы.', 'err'); return; }
     if(getPersonalBalance(me.id) < amt) { toast('Недостаточно на личном счёте', 'err'); return; }
     await db.ref('operations/'+id).set({ id, userId: me.id, userName: me.fio, type: 'personal_to_treasury', amount: amt, ts: nowISO() });
     toast('Внесено в казну', 'ok');
   } 
   else if(type === 'loan') {
+    if(CONFIG.loansDisabled) { toast('Администратор ограничил займы.', 'err'); return; }
     if(getTreasuryBalance() < amt) { toast('В казне нет столько', 'err'); return; }
     const loanId = uid();
     const due = new Date(); due.setDate(due.getDate() + 30);
     const updates = {};
     updates['loans/'+loanId] = { id: loanId, userId: me.id, userName: me.fio, amount: amt, percent: 10, takenAt: nowISO(), dueDate: due.toISOString(), status: 'active' };
-    // Создаем две операции: забираем из казны и зачисляем на личный
     updates['operations/'+id] = { id, userId: me.id, userName: me.fio, type: 'loan_out', amount: amt, ts: nowISO(), comment: 'Выдача займа' };
     const id2 = uid();
     updates['operations/'+id2] = { id: id2, userId: me.id, userName: me.fio, type: 'personal_deposit', amount: amt, ts: nowISO(), comment: 'Зачисление займа' };
@@ -666,24 +733,36 @@ window.executeTreasuryAction = async (type) => {
     toast('Заём взят', 'ok');
   } 
   else if(type === 'return') {
+    if(CONFIG.returnsDisabled) { toast('Администратор ограничил возврат.', 'err'); return; }
     const loan = getActiveLoan(me.id);
     if(!loan) return;
     if(getPersonalBalance(me.id) < amt) { toast('Недостаточно средств на личном', 'err'); return; }
     
-    // Списываем частично
-    const updates = {};
-    updates['operations/'+id] = { id, userId: me.id, userName: me.fio, type: 'personal_withdraw', amount: amt, ts: nowISO(), comment: 'Списание на возврат долга' };
+    const totalDebt = loan.amount + Math.round(loan.amount * (loan.percent || 0) / 100);
+    let newLoanAmount = loan.amount;
+    let isFullyClosed = false;
     
-    // Если ввели всю сумму долга + процент — закрываем займ
-    const totalDebt = loan.amount + Math.round(loan.amount * 0.1);
     if (amt >= totalDebt) {
+      isFullyClosed = true;
+    } else {
+      newLoanAmount = loan.amount - amt;
+    }
+    
+    const updates = {};
+    const id1 = uid();
+    updates['operations/'+id1] = { id: id1, userId: me.id, userName: me.fio, type: 'personal_withdraw', amount: amt, ts: nowISO(), comment: 'Списание на возврат долга' };
+    
+    const id2 = uid();
+    updates['operations/'+id2] = { id: id2, userId: me.id, userName: me.fio, type: 'loan_return', amount: amt, ts: nowISO(), comment: 'Возврат части займа в казну' };
+    
+    if (isFullyClosed) {
       updates['loans/'+loan.id+'/status'] = 'returned';
-      const id2 = uid();
-      updates['operations/'+id2] = { id: id2, userId: me.id, userName: me.fio, type: 'loan_return', amount: amt, ts: nowISO(), comment: 'Возврат займа в казну' };
+    } else {
+      updates['loans/'+loan.id+'/amount'] = newLoanAmount;
     }
     
     await db.ref().update(updates);
-    toast('Средства списаны', 'ok');
+    toast('Долг уменьшен на ' + fmtMoney(amt), 'ok');
   }
   
   if(location.hash.includes('index')) renderIndex();
@@ -694,6 +773,7 @@ window.instantAction = async (type, payload) => {
   const me = getSession().user; const ts = nowISO();
   
   if(type === 'transfer') {
+    if(CONFIG.transfersDisabled) { toast('Администратор ограничил переводы.', 'err'); return; }
     const amt = Number(payload.amount);
     if(getPersonalBalance(me.id) < amt) { toast('Недостаточно средств', 'err'); return; }
     const target = USERS[payload.targetUserId];
@@ -707,11 +787,13 @@ window.instantAction = async (type, payload) => {
     return; 
   } 
   else if(type === 'deposit') {
+    if(CONFIG.depositsDisabled) { toast('Администратор ограничил пополнения.', 'err'); return; }
     const id = uid();
     await db.ref('operations/'+id).set({ id, userId: me.id, userName: me.fio, type: 'personal_deposit', amount: Number(payload.amount), ts });
     toast('Пополнено', 'ok');
   } 
   else if(type === 'withdraw') {
+    if(CONFIG.depositsDisabled) { toast('Администратор ограничил снятия.', 'err'); return; }
     if(getPersonalBalance(me.id) < payload.amount) { toast('Недостаточно средств', 'err'); return; }
     const id = uid();
     await db.ref('operations/'+id).set({ id, userId: me.id, userName: me.fio, type: 'personal_withdraw', amount: Number(payload.amount), ts });
@@ -754,14 +836,66 @@ window.doAction = async (type) => {
   await instantAction(type, { amount: amt });
   if(location.hash.includes('personal')) renderPersonal(); if(location.hash.includes('index')) renderIndex();
 };
+
 window.doTransfer = async () => {
   const targetId = document.getElementById('inpUser').value; 
   const amtEl = document.getElementById('inpAmt');
   const amt = Number(amtEl ? amtEl.value : 0); 
   if(!amt || !targetId) { toast('Заполните поля', 'err'); return; }
-  closeModal(); 
-  await instantAction('transfer', { amount: amt, targetUserId: targetId });
-  if(location.hash.includes('personal')) renderPersonal(); if(location.hash.includes('index')) renderIndex();
+  const target = USERS[targetId];
+  if(!target) return;
+
+  showModal('Перевод', `
+    <div class="loader-wrap">
+      <svg class="loader-svg" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="36" class="circle-bg"></circle>
+        <circle cx="50" cy="50" r="36" class="circle-fg" id="loadCircle"></circle>
+        <path class="checkmark" id="loadCheck" d="M30 52 L 45 65 L 72 35"></path>
+      </svg>
+      <div class="loader-text" id="loadText">Отправка перевода...</div>
+    </div>
+  `);
+
+  const totalTime = Math.floor(Math.random() * 5000) + 5000; 
+  const circle = document.getElementById('loadCircle');
+  let start = Date.now();
+
+  const animate = () => {
+    const elapsed = Date.now() - start;
+    const progress = Math.min(1, elapsed / totalTime);
+    const offset = 226 - (progress * 226);
+    if(circle) circle.style.strokeDashoffset = offset;
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      const check = document.getElementById('loadCheck');
+      const txt = document.getElementById('loadText');
+      if(check) check.style.strokeDashoffset = '0';
+      if(txt) txt.textContent = 'Успешно!';
+      
+      const me = getSession().user;
+      const ts = nowISO();
+      const outId = uid();
+      const inId = uid();
+      
+      Promise.all([
+        db.ref('operations/' + outId).set({ id: outId, userId: me.id, userName: me.fio, type: 'transfer_out', amount: amt, targetUserId: target.id, ts, comment: `Перевод для ${target.fio}` }),
+        db.ref('operations/' + inId).set({ id: inId, userId: target.id, userName: target.fio, type: 'transfer_in', amount: amt, targetUserId: me.id, ts, comment: `Перевод от ${me.fio}` })
+      ]).then(() => {
+        setTimeout(() => {
+          closeModal();
+          if(location.hash.includes('personal')) renderPersonal(); 
+          if(location.hash.includes('index')) renderIndex();
+          toast('Перевод выполнен', 'ok');
+        }, 600);
+      }).catch(err => {
+        closeModal();
+        toast('Ошибка: ' + err.message, 'err');
+      });
+    }
+  };
+  requestAnimationFrame(animate);
 };
 
 async function renderCard(){
@@ -825,8 +959,37 @@ async function renderAdminPanel() {
   const sess = getSession(); if(!sess || sess.user.role !== 'admin') return;
   const me = sess.user;
   
+  const usersOptions = Object.values(USERS).map(u => `<option value="${u.id}">${esc(u.fio)} ${u.blocked ? '(Заблокирован)' : ''}</option>`).join('');
+  
   document.getElementById('app').innerHTML = shell('admin', `
     <h2 class="page-title">Админ-панель</h2>
+
+    <div class="card">
+      <h3 style="margin-top:0">Глобальные ограничения</h3>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <label><input type="checkbox" id="cfgLogin" ${CONFIG.loginDisabled?'checked':''}> Запретить ВХОД на сайт</label>
+        <label><input type="checkbox" id="cfgTransfers" ${CONFIG.transfersDisabled?'checked':''}> Запретить ПЕРЕВОДЫ</label>
+        <label><input type="checkbox" id="cfgDeposits" ${CONFIG.depositsDisabled?'checked':''}> Запретить ПОПОЛНЕНИЯ/СНЯТИЯ</label>
+        <label><input type="checkbox" id="cfgLoans" ${CONFIG.loansDisabled?'checked':''}> Запретить ЗАЙМЫ</label>
+        <label><input type="checkbox" id="cfgReturns" ${CONFIG.returnsDisabled?'checked':''}> Запретить ВОЗВРАТ ЗАЙМОВ</label>
+      </div>
+      <button class="btn block" style="margin-top:16px;" onclick="saveGlobalConfig()">Сохранить ограничения</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Рассылка сообщений</h3>
+      <div class="field"><label>Кому</label>
+        <select id="msgTarget">
+          <option value="all">Всем пользователям</option>
+          ${usersOptions}
+        </select>
+      </div>
+      <div class="field"><label>Текст сообщения</label>
+        <input type="text" id="msgText" placeholder="Введите текст...">
+      </div>
+      <button class="btn block" onclick="sendGlobalMessage()">Отправить</button>
+    </div>
+
     <div class="card">
       <h3 style="margin-top:0">Управление казной</h3>
       <div class="field"><label>Сумма</label><input type="number" id="admTreasAmount" placeholder="Сумма"></div>
@@ -835,21 +998,47 @@ async function renderAdminPanel() {
         <button class="btn neutral small" onclick="adminActionTreasury('remove')">Вынести</button>
       </div>
     </div>
+
     <div class="card">
       <h3 style="margin-top:0">Участник</h3>
-      <div class="field"><select id="admTargetUser">
-        ${Object.values(USERS).filter(u => u.id !== me.id).map(u => `<option value="${u.id}">${u.fio}</option>`).join('')}
-      </select></div>
+      <div class="field"><select id="admTargetUser">${usersOptions}</select></div>
       <div class="field"><label>Сумма</label><input type="number" id="admUserAmount" placeholder="Сумма"></div>
       <div class="btn-row">
         <button class="btn ghost small" onclick="adminActionUser('personal')">Пополнить личный</button>
         <button class="btn ghost small" onclick="adminActionUser('debt')">Ввести долг</button>
-        <button class="btn red small" onclick="adminActionUser('block')">Блок. аккаунт</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn red small" onclick="adminActionUser('block')">Заблокировать аккаунт</button>
+        <button class="btn neutral small" onclick="adminActionUser('unblock')">Разблокировать аккаунт</button>
       </div>
     </div>
   `);
   bindShell(); startIdle();
 }
+
+window.saveGlobalConfig = async () => {
+  const cfg = {
+    loginDisabled: document.getElementById('cfgLogin').checked,
+    transfersDisabled: document.getElementById('cfgTransfers').checked,
+    depositsDisabled: document.getElementById('cfgDeposits').checked,
+    loansDisabled: document.getElementById('cfgLoans').checked,
+    returnsDisabled: document.getElementById('cfgReturns').checked
+  };
+  await db.ref('config').update(cfg);
+  toast('Настройки сохранены', 'ok');
+  renderAdminPanel();
+};
+
+window.sendGlobalMessage = async () => {
+  const target = document.getElementById('msgTarget').value;
+  const text = document.getElementById('msgText').value.trim();
+  if (!text) return toast('Введите текст', 'err');
+  
+  const id = uid();
+  await db.ref('messages/' + id).set({ id, target, text, ts: nowISO(), by: getSession().user.fio });
+  toast('Сообщение отправлено', 'ok');
+  document.getElementById('msgText').value = '';
+};
 
 window.adminActionTreasury = async (type) => {
   const amt = Number(document.getElementById('admTreasAmount').value);
@@ -882,6 +1071,9 @@ window.adminActionUser = async (type) => {
   } else if(type === 'block') {
     await db.ref('users/'+target.id).update({ blocked: true });
     toast('Аккаунт заблокирован', 'ok');
+  } else if(type === 'unblock') {
+    await db.ref('users/'+target.id).update({ blocked: false });
+    toast('Аккаунт разблокирован', 'ok');
   }
   renderAdminPanel();
 };
