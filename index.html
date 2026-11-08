@@ -40,6 +40,7 @@
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes slideRight { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
 
 *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
@@ -109,14 +110,14 @@ table.tbl th{color:var(--text-muted);font-size:12px;text-transform:uppercase;}
 .badge.red{background:var(--red-bg);color:var(--red);}
 
 .auth-layout { min-height: 100vh; width: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; }
-.auth-box { background: var(--card-bg); border-radius: 32px; padding: 40px 32px; width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); display: flex; flex-direction: column; animation: popIn 0.4s ease both; }
+.auth-box { background: var(--card-bg); border-radius: 32px; padding: 40px 32px; width: 100%; max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); display: flex; flex-direction: column; animation: popIn 0.4s ease both; margin: auto; }
 .auth-brand { text-align: center; margin-bottom: 32px; }
 .auth-brand .logo { font-size: 28px; font-weight: 800; color: var(--sber-green); margin-bottom: 8px; }
 .auth-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 4px; margin-bottom: 24px; }
 .auth-tabs button { flex: 1; border: none; background: transparent; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
 .auth-tabs button.active { background: var(--card-bg); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,.05); }
 
-#pinScreen { position: fixed; inset: 0; z-index: 999; background: var(--sber-green); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; padding: 24px; }
+#pinScreen { position: fixed; inset: 0; z-index: 999; background: var(--sber-green); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; padding: 24px; animation: fadeIn 0.4s ease both; }
 .pin-content { width: 100%; max-width: 360px; display: flex; flex-direction: column; }
 .pin-top { margin-bottom: 30px; text-align: center; }
 .pin-top .ava-small { width: 72px; height: 72px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 26px; color: #0b2e16; margin: 0 auto 16px; overflow: hidden; }
@@ -129,8 +130,10 @@ table.tbl th{color:var(--text-muted);font-size:12px;text-transform:uppercase;}
 .pin-dots .dot.filled::after { opacity: 1; }
 .pin-dots.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.pin-pad button { height: 64px; border: none; border-radius: 16px; background: #fff; color: #000; font-size: 24px; font-weight: 500; cursor: pointer; }
+.pin-pad button { height: 64px; border: none; border-radius: 16px; background: rgba(255,255,255,0.7); backdrop-filter: blur(5px); color: #000; font-size: 24px; font-weight: 600; cursor: pointer; transition: transform 0.1s, background 0.2s; }
+.pin-pad button:active { transform: scale(0.9); background: rgba(255,255,255,1); }
 .pin-pad button.fn { background: transparent; color: #fff; font-size: 14px; font-weight: 500; }
+.pin-pad button.fn:active { background: rgba(255,255,255,0.2); transform: scale(0.9); }
 
 .avatar-edit{display:flex;align-items:center;gap:20px;margin-bottom:20px;}
 .avatar-preview{width:80px;height:80px;border-radius:50%;background:var(--input-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:28px;font-weight:600;}
@@ -180,21 +183,14 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
 }
 
 #loadingScreen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#000;}
-.loading-landscape{position:absolute;inset:0;background-size:cover;background-position:center;}
+.loading-landscape{position:absolute;inset:0;background-size:cover;background-position:center;animation: fadeIn 0.5s ease;}
 .loading-landscape::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
-.loading-greeting{position:absolute;top:40px;left:40px;font-size:28px;font-weight:700;color:#fff;z-index:2;}
-.loading-ring-wrap{position:relative;width:120px;height:120px;z-index:2;}
+.loading-greeting{position:absolute;top:40px;left:40px;font-size:28px;font-weight:700;color:#fff;z-index:2; animation: slideRight 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;}
+.loading-ring-wrap{position:relative;width:120px;height:120px;z-index:2; animation: popIn 0.5s ease both;}
 .loading-ring{width:100%;height:100%;transform:rotate(-90deg);}
 .loading-ring .ring-bg{fill:none;stroke:rgba(255,255,255,.2);stroke-width:6;}
 .loading-ring .ring-fg{fill:none;stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-dasharray:264;stroke-dashoffset:264;transition:stroke-dashoffset .25s linear;}
 .loading-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;}
-
-.loader-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; }
-.loader-svg { width: 80px; height: 80px; transform: rotate(-90deg); }
-.loader-svg .circle-bg { fill: none; stroke: var(--input-bg); stroke-width: 4; }
-.loader-svg .circle-fg { fill: none; stroke: var(--sber-green); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 226; stroke-dashoffset: 226; transition: stroke-dashoffset 0.1s linear; }
-.loader-svg .checkmark { fill: none; stroke: var(--sber-green); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 48; stroke-dashoffset: 48; transition: stroke-dashoffset 0.4s ease 0.2s; }
-.loader-text { margin-top: 20px; font-size: 16px; font-weight: 500; color: var(--text-main); }
 </style>
 </head>
 <body>
@@ -332,7 +328,7 @@ function initFirebaseSync() {
   db.ref('cards').on('value', s => { CARDS = s.val() || {}; if(DATA_READY) route(); });
   db.ref('config').on('value', s => { CONFIG = s.val() || {}; if(DATA_READY) route(); });
   db.ref('requests').on('value', s => { REQS = s.val() || {}; if(DATA_READY) route(); });
-  db.ref('messages').on('value', s => {
+  db.ref('messages').on('value', s => { 
     MESSAGES = s.val() || {}; 
     if(DATA_READY) checkNewMessages(); 
   });
@@ -436,7 +432,7 @@ async function renderLogin(params){
       <div id="pinScreen">
         <div class="pin-content">
           <div class="pin-top">
-            <div class="ava-small">${initials(user.fio)}</div>
+            <div class="ava-small">${user.avatar ? `<img src="${user.avatar}" alt="">` : initials(user.fio)}</div>
             <div class="uname">${esc(user.name)} ${esc(user.lastname)}</div>
             <div class="uhint">Введите PIN-код</div>
             <div class="pin-dots" id="pinDots">
@@ -795,73 +791,23 @@ window.doAction = async (type) => {
   if(location.hash.includes('personal')) renderPersonal(); if(location.hash.includes('index')) renderIndex();
 };
 
-window.doTransfer = async () => {
-  const targetId = document.getElementById('inpUser').value; 
-  const amtEl = document.getElementById('inpAmt');
-  const amt = Number(amtEl ? amtEl.value : 0); 
-  if(!amt || !targetId) { toast('Заполните поля', 'err'); return; }
-  if (CONFIG.transfersDisabled) { toast('Администратор ограничил переводы.', 'err'); return; }
+async function renderPersonal(){
+  const sess = getSession(); if(!sess) return; const me = sess.user;
   
-  const me = getSession().user;
-  if (getPersonalBalance(me.id) < amt) { toast('Недостаточно средств', 'err'); return; }
-  const target = USERS[targetId];
-  if(!target) return;
-
-  showModal('Перевод', `
-    <div class="loader-wrap">
-      <svg class="loader-svg" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="36" class="circle-bg"></circle>
-        <circle cx="50" cy="50" r="36" class="circle-fg" id="loadCircle"></circle>
-        <path class="checkmark" id="loadCheck" d="M30 52 L 45 65 L 72 35"></path>
-      </svg>
-      <div class="loader-text" id="loadText">Отправка перевода...</div>
+  document.getElementById('app').innerHTML = shell('personal', `
+    <h2 class="page-title">Личный счёт</h2>
+    <div class="card center">
+      <div class="text-muted">Баланс</div>
+      <div style="font-size:36px;font-weight:700;margin:8px 0;">${fmtMoney(getPersonalBalance(me.id))}</div>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn green" onclick="showDeposit()">Положить</button>
+        <button class="btn ghost" onclick="showWithdraw()">Снять</button>
+        <button class="btn ghost" onclick="showTransfer()">Перевести</button>
+      </div>
     </div>
   `);
-
-  const totalTime = Math.floor(Math.random() * 5000) + 5000; 
-  const circle = document.getElementById('loadCircle');
-  let start = Date.now();
-
-  const animate = () => {
-    const elapsed = Date.now() - start;
-    const progress = Math.min(1, elapsed / totalTime);
-    const offset = 226 - (progress * 226);
-    if(circle) circle.style.strokeDashoffset = offset;
-    
-    if (progress < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      const check = document.getElementById('loadCheck');
-      const txt = document.getElementById('loadText');
-      if(check) check.style.strokeDashoffset = '0';
-      if(txt) txt.textContent = 'Успешно!';
-      
-      const ts = nowISO();
-      const outId = uid();
-      const inId = uid();
-      
-      const outOp = { id: outId, userId: me.id, userName: me.fio, type: 'transfer_out', amount: amt, targetUserId: target.id, ts, comment: `Перевод для ${target.fio}` };
-      const inOp = { id: inId, userId: target.id, userName: target.fio, type: 'transfer_in', amount: amt, targetUserId: me.id, ts, comment: `Перевод от ${me.fio}` };
-      
-      const updates = {};
-      updates['operations/' + outId] = outOp;
-      updates['operations/' + inId] = inOp;
-      
-      db.ref().update(updates).then(() => {
-        setTimeout(() => {
-          closeModal();
-          if(location.hash.includes('personal')) renderPersonal(); 
-          if(location.hash.includes('index')) renderIndex();
-          toast('Перевод выполнен', 'ok');
-        }, 600);
-      }).catch(err => {
-        closeModal();
-        toast('Ошибка перевода: ' + err.message, 'err');
-      });
-    }
-  };
-  requestAnimationFrame(animate);
-};
+  bindShell(); startIdle();
+}
 
 function drawQRCode(container, text) {
   if(!container) return;
@@ -1123,6 +1069,29 @@ async function renderAdminPanel() {
     </div>
 
     <div class="card">
+      <h3 style="margin-top:0">Рассылка сообщений</h3>
+      <div class="field"><label>Кому</label>
+        <select id="msgTarget">
+          <option value="all">Всем пользователям</option>
+          ${usersOptions}
+        </select>
+      </div>
+      <div class="field"><label>Текст сообщения</label>
+        <input type="text" id="msgText" placeholder="Введите текст...">
+      </div>
+      <button class="btn block" onclick="sendGlobalMessage()">Отправить</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Управление казной</h3>
+      <div class="field"><label>Сумма</label><input type="number" id="admTreasAmount" placeholder="Сумма"></div>
+      <div class="btn-row">
+        <button class="btn green small" onclick="adminActionTreasury('add')">Внести</button>
+        <button class="btn neutral small" onclick="adminActionTreasury('remove')">Вынести</button>
+      </div>
+    </div>
+
+    <div class="card">
       <h3 style="margin-top:0">Участник</h3>
       <div class="field"><select id="admTargetUser">${usersOptions}</select></div>
       <div class="field"><label>Сумма</label><input type="number" id="admUserAmount" placeholder="Сумма"></div>
@@ -1140,83 +1109,38 @@ async function renderAdminPanel() {
   bindShell(); startIdle();
 }
 
-// Обработка заявок (Разрешить)
-window.handleRequest = async (reqId, action) => {
-  const req = REQS[reqId];
-  if(!req) return;
-  
-  if(action === 'approve') {
-    // Создаем операцию пополнения
-    const opId = uid();
-    await db.ref('operations/' + opId).set({ 
-      id: opId, userId: req.userId, userName: req.userName, 
-      type: 'personal_deposit', amount: req.amount, ts: nowISO(), 
-      comment: 'Пополнение (одобрено админом)' 
-    });
-    // Удаляем заявку
-    await db.ref('requests/' + reqId).remove();
-    toast('Заявка одобрена', 'ok');
-    renderAdminPanel();
-  }
-};
-
-// Модалка отклонения с выбором причины
-window.openRejectModal = (reqId) => {
-  showModal('Отклонение заявки', `
-    <div class="field">
-      <label>Причина</label>
-      <select id="rejectReason">
-        <option value="Отклонено. Ваших средств нет в кассе отделения.">Отклонено. Ваших средств нет в кассе отделения.</option>
-        <option value="Отклонено решением Администратора.">Отклонено решением Администратора.</option>
-        <option value="custom">-- Своя причина --</option>
-      </select>
-    </div>
-    <div class="field" id="customReasonBox" style="display:none;">
-      <label>Свой текст</label>
-      <input type="text" id="customReason">
-    </div>
-    <button class="btn red block" onclick="confirmReject('${reqId}')">Отклонить</button>
-  `);
-  
-  document.getElementById('rejectReason').addEventListener('change', (e) => {
-    document.getElementById('customReasonBox').style.display = e.target.value === 'custom' ? 'block' : 'none';
-  });
-};
-
-window.confirmReject = async (reqId) => {
-  const selectVal = document.getElementById('rejectReason').value;
-  const customVal = document.getElementById('customReason').value;
-  const reason = selectVal === 'custom' ? (customVal || 'Без причины') : selectVal;
-  
-  const req = REQS[reqId];
-  await db.ref('requests/' + reqId).remove();
-  await db.ref('messages/' + uid()).set({
-    id: uid(), target: req.userId, text: reason, ts: nowISO(), by: 'Администратор'
-  });
-  
-  closeModal();
-  toast('Заявка отклонена', 'ok');
+window.saveGlobalConfig = async () => {
+  const cfg = {
+    loginDisabled: document.getElementById('cfgLogin').checked,
+    transfersDisabled: document.getElementById('cfgTransfers').checked,
+    depositsDisabled: document.getElementById('cfgDeposits').checked,
+    loansDisabled: document.getElementById('cfgLoans').checked,
+    returnsDisabled: document.getElementById('cfgReturns').checked
+  };
+  await db.ref('config').update(cfg);
+  toast('Настройки сохранены', 'ok');
   renderAdminPanel();
 };
 
-async function renderPersonal(){
-  const sess = getSession(); if(!sess) return; const me = sess.user;
+window.sendGlobalMessage = async () => {
+  const target = document.getElementById('msgTarget').value;
+  const text = document.getElementById('msgText').value.trim();
+  if (!text) return toast('Введите текст', 'err');
   
-  document.getElementById('app').innerHTML = shell('personal', `
-    <h2 class="page-title">Личный счёт</h2>
-    <div class="card center">
-      <div class="text-muted">Баланс</div>
-      <div style="font-size:36px;font-weight:700;margin:8px 0;">${fmtMoney(getPersonalBalance(me.id))}</div>
-      <div class="btn-row" style="justify-content:center">
-        <button class="btn green" onclick="showDeposit()">Положить</button>
-        <button class="btn ghost" onclick="showWithdraw()">Снять</button>
-        <button class="btn ghost" onclick="showTransfer()">Перевести</button>
-      </div>
-    </div>
-  `);
-  
-  bindShell(); startIdle();
-}
+  const id = uid();
+  await db.ref('messages/' + id).set({ id, target, text, ts: nowISO(), by: getSession().user.fio });
+  toast('Сообщение отправлено', 'ok');
+  document.getElementById('msgText').value = '';
+};
+
+window.adminActionTreasury = async (type) => {
+  const amt = Number(document.getElementById('admTreasAmount').value);
+  if(!amt || amt <= 0) return toast('Введите сумму', 'err');
+  const id = uid();
+  const opType = type === 'add' ? 'contribute' : 'admin_treasury_out';
+  await db.ref('operations/'+id).set({ id, userId: getSession().user.id, userName: 'Админ', type: opType, amount: amt, ts: nowISO() });
+  toast('Казна обновлена', 'ok'); renderAdminPanel();
+};
 
 window.adminActionUser = async (type) => {
   const targetId = document.getElementById('admTargetUser').value;
@@ -1229,8 +1153,7 @@ window.adminActionUser = async (type) => {
     const id = uid();
     await db.ref('operations/'+id).set({ id, userId: target.id, userName: target.fio, type: 'personal_deposit', amount: amt, ts: nowISO(), comment: 'От админа' });
     toast('Личный счёт пополнен', 'ok');
-  } 
-  else if(type === 'debt') {
+  } else if(type === 'debt') {
     if(!amt || amt <= 0) return toast('Введите сумму', 'err');
     const loanId = uid();
     const due = new Date(); due.setDate(due.getDate() + 30);
@@ -1238,22 +1161,18 @@ window.adminActionUser = async (type) => {
     updates['loans/'+loanId] = { id: loanId, userId: target.id, userName: target.fio, amount: amt, percent: 0, takenAt: nowISO(), dueDate: due.toISOString(), status: 'active', byAdmin: true };
     await db.ref().update(updates);
     toast('Долг введён', 'ok');
-  } 
-  else if(type === 'cancelDebt') {
+  } else if(type === 'cancelDebt') {
     const loan = getActiveLoan(target.id);
     if(!loan) return toast('У пользователя нет активного долга', 'err');
     await db.ref('loans/' + loan.id).update({ status: 'cancelled' });
     toast('Долг аннулирован', 'ok');
-  } 
-  else if(type === 'block') {
+  } else if(type === 'block') {
     await db.ref('users/'+target.id).update({ blocked: true });
     toast('Аккаунт заблокирован', 'ok');
-  } 
-  else if(type === 'unblock') {
+  } else if(type === 'unblock') {
     await db.ref('users/'+target.id).update({ blocked: false });
     toast('Аккаунт разблокирован', 'ok');
   }
-  
   renderAdminPanel();
 };
 
