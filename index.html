@@ -757,11 +757,15 @@ window.executeTreasuryAction = async (type) => {
 window.showDeposit = () => { showModal('Пополнить', `<div class="field"><input type="number" id="inpAmt" placeholder="Сумма"></div><button class="btn block" onclick="doAction('deposit')">Пополнить</button>`); };
 window.showWithdraw = () => { showModal('Снять', `<div class="field"><input type="number" id="inpAmt" placeholder="Сумма"></div><button class="btn block" onclick="doAction('withdraw')">Снять</button>`); };
 window.showTransfer = () => { 
-  const me = getSession().user; let opts = Object.values(USERS).filter(u => u.id !== me.id).map(u => `<option value="${u.id}">${u.fio}</option>`).join('');
   showModal('Перевод', `
-    <div class="field"><label>Кому</label><select id="inpUser">${opts}</select></div>
-    <div class="field"><label>Сумма</label><input type="number" id="inpAmt" placeholder="Сумма"></div>
-    <button class="btn block" onclick="doTransfer()">Перевести</button>
+    <div style="text-align: center; padding: 20px 0;">
+      <h3 style="color: var(--red); margin-bottom: 10px;">Функция в разработке</h3>
+      <p style="font-size: 15px; line-height: 1.5;">
+        Извините, перевод средств пока недоступен.<br>
+        Мы работаем над этим!
+      </p>
+      <button class="btn ghost block" style="margin-top: 20px;" onclick="closeModal()">Понятно</button>
+    </div>
   `); 
 };
 
