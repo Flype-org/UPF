@@ -855,7 +855,6 @@ window.doTransfer = async () => {
   requestAnimationFrame(animate);
 };
 
-// ГЕНЕРАТОР QR-КОДА
 function drawQRCode(container, text) {
   if(!container) return;
   container.innerHTML = '';
@@ -893,57 +892,6 @@ function drawQRCode(container, text) {
 }
 
 async function renderCard(){
-  async function renderPersonal(){
-  const sess = getSession(); if(!sess) return; const me = sess.user;
-  
-  document.getElementById('app').innerHTML = shell('personal', `
-    <h2 class="page-title">Личный счёт</h2>
-    <div class="card center">
-      <div class="text-muted">Баланс</div>
-      <div style="font-size:36px;font-weight:700;margin:8px 0;">${fmtMoney(getPersonalBalance(me.id))}</div>
-      <div class="btn-row" style="justify-content:center">
-        <button class="btn green" onclick="showDeposit()">Положить</button>
-        <button class="btn ghost" onclick="showWithdraw()">Снять</button>
-        <button class="btn ghost" onclick="showTransfer()">Перевести</button>
-      </div>
-    </div>
-    
-    <h3 class="section-title" style="margin-top:24px;">История личных операций</h3>
-    <div class="table-wrap">
-      <table class="tbl" id="personalOpsTable">
-        <thead><tr><th>Дата</th><th>Операция</th><th>Сумма</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  `);
-  
-  bindShell(); startIdle();
-
-  // Заполняем историю операций именно этого пользователя
-  const ops = Object.values(OPS)
-    .filter(o => o.userId === me.id || o.targetUserId === me.id)
-    .sort((a, b) => new Date(b.ts) - new Date(a.ts));
-    
-  const tbody = document.querySelector('#personalOpsTable tbody');
-  const labels = {
-    personal_deposit: 'Пополнение',
-    personal_withdraw: 'Снятие',
-    personal_to_treasury: 'В казну',
-    transfer_out: 'Перевод отправлен',
-    transfer_in: 'Перевод получен'
-  };
-  
-  tbody.innerHTML = ops.map(op => {
-    const isIn = (op.type === 'personal_deposit' || op.type === 'transfer_in');
-    const cls = isIn ? 'amt-in' : 'amt-out';
-    const sign = isIn ? '+' : '−';
-    return `<tr>
-      <td>${fmtDateTime(op.ts)}</td>
-      <td>${labels[op.type] || op.type}</td>
-      <td class="${cls}">${sign} ${fmtMoney(op.amount)}</td>
-    </tr>`;
-  }).join('');
-}
   const sess = getSession(); if(!sess) return; const me = sess.user; const card = getUserCard(me.id);
   
   let cardHtml = '';
