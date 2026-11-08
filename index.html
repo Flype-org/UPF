@@ -1193,6 +1193,25 @@ window.adminActionUser = async (type) => {
   renderAdminPanel();
 };
 
+async function renderPersonal(){
+  const sess = getSession(); if(!sess) return; const me = sess.user;
+  
+  document.getElementById('app').innerHTML = shell('personal', `
+    <h2 class="page-title">Личный счёт</h2>
+    <div class="card center">
+      <div class="text-muted">Баланс</div>
+      <div style="font-size:36px;font-weight:700;margin:8px 0;">${fmtMoney(getPersonalBalance(me.id))}</div>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn green" onclick="showDeposit()">Положить</button>
+        <button class="btn ghost" onclick="showWithdraw()">Снять</button>
+        <button class="btn ghost" onclick="showTransfer()">Перевести</button>
+      </div>
+    </div>
+  `);
+  
+  bindShell(); startIdle();
+}
+
 initFirebaseSync();
 if(!location.hash) location.replace('#/login');
 window.addEventListener('DOMContentLoaded', route);
