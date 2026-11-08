@@ -939,8 +939,7 @@ async function renderAccount() {
   const sess = getSession(); if(!sess) return; let me = sess.user;
   const savedTheme = localStorage.getItem('upf_theme') || 'light'; document.documentElement.setAttribute('data-theme', savedTheme);
   
-  document.getElementById('app').innerHTML = shell('account', `
-    <h2 class="page-title">Аккаунт</h2>
+      <h2 class="page-title">Аккаунт</h2>
     <div class="theme-toggle">
       <span>Тёмная тема</span>
       <label class="switch"><input type="checkbox" id="themeToggle" ${savedTheme === 'dark' ? 'checked' : ''}><span class="slider"></span></label>
@@ -963,16 +962,18 @@ async function renderAccount() {
 
     <div class="card">
       <h3 style="margin-top:0">Сменить пароль</h3>
-      <div class="field"><label>Новый пароль</label><input type="password" id="accPass"></div>
+      <div class="field"><label>Старый пароль</label><input type="password" id="oldPass"></div>
+      <div class="field"><label>Новый пароль (мин. 6 символов)</label><input type="password" id="accPass"></div>
       <button class="btn" onclick="updateAccount('pass')">Сменить</button>
     </div>
 
     <div class="card">
       <h3 style="margin-top:0">Сменить PIN</h3>
+      <div class="field"><label>Текущий пароль</label><input type="password" id="oldPinPass"></div>
       <div class="field"><label>Новый PIN (5 цифр)</label><input type="password" id="accPin" maxlength="5"></div>
       <button class="btn" onclick="updateAccount('pin')">Сменить</button>
     </div>
-  `);
+  
   bindShell(); startIdle();
   
   const toggle = document.getElementById('themeToggle');
@@ -1016,12 +1017,42 @@ window.uploadAvatar = async (event) => {
 window.updateAccount = async (type) => {
   const me = getSession().user;
   const updates = {};
-  if(type === 'fio') updates.fio = document.getElementById('accFio').value;
-  if(type === 'pass') updates.pass = makeHash(document.getElementById('accPass').value);
-  if(type === 'pin') updates.pin = makeHash(document.getElementById('accPin').value);
+  
+  if(type === 'fio') {
+    const newFio = document.getElementById('accFio').value.trim();
+    if (!newFio) return toast('Введите ФИО', 'err');
+    updates.fio = newFio;
+  } 
+  
+  else if(type === 'pass') {
+    const oldP = document.getElementById('oldPass').value;
+    const newP = document.getElementById('accPass').value;
+    
+    if (!verifyHash(oldP, me.pass.salt, me.pass.hash)) return toast('Неверный старый пароль', 'err');
+    if (newP.length < 6) return toast('Новый пароль должен быть не менее 6 символов', 'err');
+    
+    updates.pass = makeHash(newP);
+  } 
+  
+  else if(type === 'pin') {
+    const oldP = document.getElementById('oldPinPass').value;
+    const newPin = document.getElementById('accPin').value;
+    
+    if (!verifyHash(oldP, me.pass.salt, me.pass.hash)) return toast('Неверный пароль', 'err');
+    if (!/^\d{5}$/.test(newPin)) return toast('PIN-код должен состоять ровно из 5 цифр', 'err');
+    
+    updates.pin = makeHash(newPin);
+  }
   
   await db.ref('users/' + me.id).update(updates);
   toast('Обновлено!', 'ok');
+  
+  if(type === 'pass' || type === 'pin') {
+    document.getElementById('oldPass').value = '';
+    document.getElementById('accPass').value = '';
+    document.getElementById('oldPinPass').value = '';
+    document.getElementById('accPin').value = '';
+  }
 };
 
 async function renderAdminPanel() {
