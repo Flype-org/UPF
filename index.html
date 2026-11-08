@@ -305,7 +305,15 @@ function closeModal() { document.getElementById('customModal').classList.remove(
 function closeAllModals() { closeModal(); }
 
 let _idle=null;
-function resetIdle(){ if(_idle)clearTimeout(_idle); _idle=setTimeout(()=>{ if(getSession()){ clearSession(); location.hash='#/login?reason=idle'; } },IDLE_LIMIT_MS); }
+function resetIdle(){ 
+  if(_idle)clearTimeout(_idle); 
+  _idle=setTimeout(()=>{ 
+    if(getSession()){ 
+      clearSession(); 
+      location.hash = '#/login'; // Убрали ?reason=idle
+    } 
+  }, IDLE_LIMIT_MS); 
+}
 function startIdle(){ if(!getSession())return; resetIdle(); ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(ev=>{ document.addEventListener(ev,resetIdle,{passive:true}); }); }
 
 function getGreeting(name){ const h=new Date().getHours(); let greet; if(h>=5&&h<12)greet='Доброе утро'; else if(h>=12&&h<18)greet='Добрый день'; else if(h>=18&&h<23)greet='Добрый вечер'; else greet='Доброй ночи'; return greet+', '+name+'!'; }
@@ -504,7 +512,12 @@ async function renderLogin(params){
         <div class="field"><label>Email</label><input type="email" id="loginEmail" style="background:#e8f0fe;color:#000;"></div>
         <div class="field"><label>Пароль</label><input type="password" id="loginPass" style="background:#e8f0fe;color:#000;"></div>
         <div id="loginMsg" style="color:var(--red);font-size:13px;margin-bottom:10px;"></div>
-        <button class="btn block" type="submit">Войти</button>
+          <button class="btn block" type="submit">Войти</button>
+          <div id="backToPinBtn" style="display:none; margin-top: 16px; text-align: center;">
+          <button class="btn ghost block" type="button" onclick="localStorage.setItem('upf_remembered', localStorage.getItem('upf_remembered_last') || ''); window.location.reload();">
+            Вход по PIN-коду
+          </button>
+        </div>
       </form>
       <form id="regForm" style="display:none" novalidate>
         <div class="row-2">
@@ -557,6 +570,13 @@ async function renderLogin(params){
     document.getElementById('regMsg').textContent = 'Успешно! Войдите.';
     setTimeout(() => { document.querySelector('#authTabs button[data-tab="login"]').click(); }, 1000);
   });
+
+    // Показываем кнопку "Вход по PIN", если на устройстве есть сохраненный пользователь
+  const lastUser = localStorage.getItem('upf_remembered');
+  if (lastUser) {
+    const btnWrap = document.getElementById('backToPinBtn');
+    if (btnWrap) btnWrap.style.display = 'block';
+  }
 }
 
 function getTreasuryBalance(){
