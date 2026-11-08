@@ -45,8 +45,29 @@
 html,body{margin:0;padding:0;font-family:'Inter', sans-serif;background:var(--bg);color:var(--text-main);-webkit-font-smoothing:antialiased;min-height:100%;transition: background .3s;}
 body{display:flex;flex-direction:column;min-height:100vh; padding-bottom: 70px;}
 
-header.topbar{background: var(--card-bg); padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border);}
-header.topbar h1{font-size:16px;margin:0;font-weight:600;}
+header.topbar {
+  background: var(--card-bg); 
+  padding: 12px 16px; 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  position: sticky; 
+  top: 0; 
+  z-index: 50; 
+  border-bottom: 1px solid var(--border);
+  height: 60px; /* Фиксируем высоту */
+  box-sizing: border-box;
+}
+header.topbar h1 { font-size:16px; margin:0; font-weight:600; }
+
+/* ЖЕСТКО СКРЫВАЕМ ЛЮБЫЕ ИКОНКИ В ШАПКЕ НА ТЕЛЕФОНАХ */
+header.topbar svg, 
+header.topbar .bottom-nav, 
+header.topbar .drawer,
+header.topbar .btn,
+header.topbar .btn-row {
+  display: none !important; 
+}
 .user-chip{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;margin-left:auto;}
 
 main.page{flex:1;width:100%;max-width:1200px;margin:0 auto;padding:16px; animation: fadeIn 0.3s ease both;}
@@ -83,11 +104,18 @@ h2.page-title{font-size:24px;margin:8px 0 16px;font-weight:700;}
 .toast-wrap{position:fixed;top:16px;right:16px;left:16px;z-index:400;display:flex;flex-direction:column;align-items:center;pointer-events:none;}
 .toast{background:var(--text-main);color:var(--card-bg);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;animation:fadeIn .3s;}
 
-dialog.modal-dialog {
-  padding: 24px; border: none; border-radius: 24px; background: var(--card-bg); color: var(--text-main);
-  width: 100%; max-width: 440px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); margin: auto;
+/* КЛАССИЧЕСКИЕ МОДАЛЬНЫЕ ОКНА (ДЛЯ ВСЕХ БРАУЗЕРОВ) */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: none; align-items: center; justify-content: center;
+  padding: 16px; z-index: 999;
 }
-dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+.modal-overlay.open { display: flex; }
+.modal-content {
+  background: var(--card-bg); border-radius: 24px; width: 100%; max-width: 440px;
+  max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  animation: popIn 0.3s ease;
+}
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .modal-header h3 { margin: 0; font-size: 20px; font-weight: 700; }
 .close-btn { background: var(--input-bg); border: none; color: var(--text-main); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
@@ -151,9 +179,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(--text-muted);margin-top:auto;}
 .bottom-nav {position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: var(--card-bg); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border); z-index: 100;}
-.bottom-nav a {display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 10px; font-weight: 500; cursor: pointer;}
+.bottom-nav a {display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 10px; font-weight: 500; cursor: pointer; text-decoration: none;}
 .bottom-nav a.active { color: var(--sber-green); }
-.bottom-nav a svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.bottom-nav a svg { width: 24px; height: 24px; max-width: 24px; max-height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .bottom-nav .logout-btn { color: var(--red); }
 
 @media (min-width: 900px) {
@@ -164,12 +192,12 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
   .drawer-head { padding: 0 12px 24px; margin-bottom: 16px;}
   .drawer-head .brand { font-size: 16px; font-weight: 700; }
   .drawer nav { flex: 1; }
-  .drawer nav a {display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; color: var(--text-main); font-weight: 500; font-size: 15px; margin-bottom: 4px; cursor: pointer;}
+  .drawer nav a {display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; color: var(--text-main); font-weight: 500; font-size: 15px; margin-bottom: 4px; cursor: pointer; text-decoration: none;}
   .drawer nav a.active { background: var(--card-bg); color: var(--sber-green); font-weight: 600; box-shadow: var(--shadow); }
-  .drawer nav a svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .drawer nav a svg { width: 22px; height: 22px; max-width: 22px; max-height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
   .drawer-foot { border-top: 1px solid var(--border); padding-top: 16px; }
-  .drawer-foot a { color: var(--red); display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-weight: 500; cursor: pointer;}
-  .drawer-foot a svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .drawer-foot a { color: var(--red); display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-weight: 500; cursor: pointer; text-decoration: none;}
+  .drawer-foot a svg { width: 22px; height: 22px; max-width: 22px; max-height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
   main.page { padding: 32px; max-width: 1000px; margin: 0 auto; }
 }
 
@@ -189,13 +217,15 @@ footer.disclaimer{text-align:center;padding:24px 16px;font-size:12px;color:var(-
 <div id="app"></div>
 <div class="toast-wrap" id="toastWrap"></div>
 
-<dialog id="universalModal" class="modal-dialog">
-  <div class="modal-header">
-    <h3 id="modalTitle"></h3>
-    <button class="close-btn" onclick="closeModal()">✕</button>
+<div id="customModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle"></h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalBody"></div>
   </div>
-  <div id="modalBody"></div>
-</dialog>
+</div>
 
 <div id="loadingScreen" style="display:none">
   <div class="loading-landscape" id="loadingLandscape"></div>
@@ -286,10 +316,9 @@ function setSession(userId){
 function clearSession(){ ssDel(SS.session); }
 
 function toast(msg,type){ const w=document.getElementById('toastWrap'); if(!w)return; const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; w.appendChild(t); setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},3200); }
-function showModal(title, contentHTML) { const dialog = document.getElementById('universalModal'); document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = contentHTML; dialog.showModal(); }
-function closeModal() { const dialog = document.getElementById('universalModal'); if (dialog.open) dialog.close(); }
+function showModal(title, contentHTML) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = contentHTML; document.getElementById('customModal').classList.add('open'); }
+function closeModal() { document.getElementById('customModal').classList.remove('open'); }
 function closeAllModals() { closeModal(); }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllModals()});
 
 let _idle=null;
 function resetIdle(){ if(_idle)clearTimeout(_idle); _idle=setTimeout(()=>{ if(getSession()){ clearSession(); location.hash='#/login?reason=idle'; } },IDLE_LIMIT_MS); }
@@ -298,10 +327,10 @@ function startIdle(){ if(!getSession())return; resetIdle(); ['mousemove','moused
 function getGreeting(name){ const h=new Date().getHours(); let greet; if(h>=5&&h<12)greet='Доброе утро'; else if(h>=12&&h<18)greet='Добрый день'; else if(h>=18&&h<23)greet='Добрый вечер'; else greet='Доброй ночи'; return greet+', '+name+'!'; }
 function getSeasonImage(){ 
   const m=new Date().getMonth(); 
-  if(m>=2&&m<=4) return 'spring.jpg';
-  if(m>=5&&m<=7) return 'summer.jpg';
-  if(m>=8&&m<=10) return 'autumn.jpg';
-  return 'winter.jpg';
+  if(m>=2&&m<=4) return 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?q=80&w=1920&auto=format&fit=crop';
+  if(m>=5&&m<=7) return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop';
+  if(m>=8&&m<=10) return 'https://images.unsplash.com/photo-1507371341162-763b8f5c6c6e?q=80&w=1920&auto=format&fit=crop';
+  return 'https://images.unsplash.com/photo-1478719059408-592965723cbc?q=80&w=1920&auto=format&fit=crop';
 }
 async function showLoadingScreen(firstName){
   const screen=document.getElementById('loadingScreen'), greeting=document.getElementById('loadingGreeting'), landscape=document.getElementById('loadingLandscape'), ring=document.getElementById('ringFg'), pct=document.getElementById('loadingPct'), sound=document.getElementById('upfSound');
@@ -318,7 +347,6 @@ function initFirebaseSync() {
   db.ref('cards').on('value', s => { CARDS = s.val() || {}; if(DATA_READY) route(); });
   DATA_READY = true;
 
-  // Автосоздание админа
   db.ref('users').orderByChild('email').equalTo(ADMIN_EMAIL).once('value').then(snap => {
     if(!snap.exists()) {
       const adminId = 'admin_'+uid();
@@ -350,11 +378,11 @@ async function route(){
 window.addEventListener('hashchange', route);
 
 const ICONS = {
-  home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
-  wallet: `<svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>`,
-  card: `<svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>`,
-  user: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
-  logout: `<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`
+  home: `<svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
+  wallet: `<svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>`,
+  card: `<svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>`,
+  user: `<svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
+  logout: `<svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`
 };
 
 function shell(activePage,bodyHTML){
@@ -602,30 +630,39 @@ window.openMember = (userId) => {
 
   if(u.id === me.id) {
     html += `<div class="btn-row">
-      <button class="btn small" onclick="closeModal(); showModal('Внести в казну', '<div class=\\'field\\'><input type=\\'number\\' id=\\'inpAmt\\' placeholder=\\'Сумма\\'></div><button class=\\'btn block\\' onclick=\\'doInstant(\\\"deposit\\\")\\'>Внести</button>')">Внести в казну</button>
+      <button class="btn small" onclick="openTreasuryAction('deposit')">Внести в казну</button>
       ${!loan 
-        ? `<button class="btn ghost small" onclick="closeModal(); showModal('Взять заём', '<div class=\\'field\\'><input type=\\'number\\' id=\\'inpAmt\\' placeholder=\\'Сумма\\'></div><button class=\\'btn block\\' onclick=\\'doInstant(\\\"loan\\\")\\'>Взять</button>')">Взять заём</button>` 
-        : `<button class="btn red small" onclick="closeModal(); showModal('Вернуть', '<p>К возврату: <b>${fmtMoney(loan.amount + Math.round(loan.amount*0.1))}</b></p><button class=\\'btn block\\' onclick=\\'doInstant(\\\"return\\\")\\'>Вернуть</button>')">Вернуть</button>`
+        ? `<button class="btn ghost small" onclick="openTreasuryAction('loan')">Взять заём</button>` 
+        : `<button class="btn red small" onclick="openTreasuryAction('return')">Вернуть</button>`
       }
     </div>`;
   }
   showModal(u.fio, html);
 };
 
-window.doInstant = async (type) => {
+window.openTreasuryAction = (type) => {
+  const titles = { deposit: 'Внести в казну', loan: 'Взять заём', return: 'Вернуть заём' };
+  showModal(titles[type], `
+    <div class="field"><label>Сумма</label><input type="number" id="actionAmount" placeholder="Введите сумму"></div>
+    <button class="btn block" onclick="executeTreasuryAction('${type}')">Подтвердить</button>
+  `);
+};
+
+window.executeTreasuryAction = async (type) => {
   const me = getSession().user;
-  const amt = Number(document.getElementById('inpAmt').value);
-  if(!amt) return;
-  closeModal();
+  const amtEl = document.getElementById('actionAmount');
+  const amt = Number(amtEl ? amtEl.value : 0);
+  
+  if(!amt || amt <= 0) { toast('Введите корректную сумму', 'err'); return; }
+  closeModal(); 
   const id = uid();
   
   if(type === 'deposit') {
-    if(getPersonalBalance(me.id) < amt) { toast('Недостаточно средств', 'err'); return; }
-    const updates = {};
-    updates['operations/'+id] = { id, userId: me.id, userName: me.fio, type: 'personal_to_treasury', amount: amt, ts: nowISO() };
-    await db.ref().update(updates);
+    if(getPersonalBalance(me.id) < amt) { toast('Недостаточно на личном счёте', 'err'); return; }
+    await db.ref('operations/'+id).set({ id, userId: me.id, userName: me.fio, type: 'personal_to_treasury', amount: amt, ts: nowISO() });
     toast('Внесено в казну', 'ok');
-  } else if(type === 'loan') {
+  } 
+  else if(type === 'loan') {
     if(getTreasuryBalance() < amt) { toast('В казне нет столько', 'err'); return; }
     const loanId = uid();
     const due = new Date(); due.setDate(due.getDate() + 30);
@@ -634,7 +671,8 @@ window.doInstant = async (type) => {
     updates['operations/'+id] = { id, userId: me.id, userName: me.fio, type: 'loan_out', amount: amt, ts: nowISO() };
     await db.ref().update(updates);
     toast('Заём взят', 'ok');
-  } else if(type === 'return') {
+  } 
+  else if(type === 'return') {
     const loan = getActiveLoan(me.id);
     if(!loan) return;
     const total = loan.amount + Math.round(loan.amount*0.1);
@@ -694,16 +732,27 @@ window.showDeposit = () => { showModal('Пополнить', `<div class="field"
 window.showWithdraw = () => { showModal('Снять', `<div class="field"><input type="number" id="inpAmt" placeholder="Сумма"></div><button class="btn block" onclick="doAction('withdraw')">Снять</button>`); };
 window.showTransfer = () => { 
   const me = getSession().user; let opts = Object.values(USERS).filter(u => u.id !== me.id).map(u => `<option value="${u.id}">${u.fio}</option>`).join('');
-  showModal('Перевод', `<div class="field"><select id="inpUser">${opts}</select></div><div class="field"><input type="number" id="inpAmt" placeholder="Сумма"></div><button class="btn block" onclick="doTransfer()">Перевести</button>`); 
+  showModal('Перевод', `
+    <div class="field"><label>Кому</label><select id="inpUser">${opts}</select></div>
+    <div class="field"><label>Сумма</label><input type="number" id="inpAmt" placeholder="Сумма"></div>
+    <button class="btn block" onclick="doTransfer()">Перевести</button>
+  `); 
 };
 window.doAction = async (type) => {
-  const amt = Number(document.getElementById('inpAmt').value); if(!amt || amt <= 0) return;
-  closeModal(); await instantAction(type, { amount: amt });
+  const amtEl = document.getElementById('inpAmt');
+  const amt = Number(amtEl ? amtEl.value : 0); 
+  if(!amt || amt <= 0) { toast('Введите сумму', 'err'); return; }
+  closeModal(); 
+  await instantAction(type, { amount: amt });
   if(location.hash.includes('personal')) renderPersonal(); if(location.hash.includes('index')) renderIndex();
 };
 window.doTransfer = async () => {
-  const targetId = document.getElementById('inpUser').value; const amt = Number(document.getElementById('inpAmt').value); if(!amt || !targetId) return;
-  closeModal(); await instantAction('transfer', { amount: amt, targetUserId: targetId });
+  const targetId = document.getElementById('inpUser').value; 
+  const amtEl = document.getElementById('inpAmt');
+  const amt = Number(amtEl ? amtEl.value : 0); 
+  if(!amt || !targetId) { toast('Заполните поля', 'err'); return; }
+  closeModal(); 
+  await instantAction('transfer', { amount: amt, targetUserId: targetId });
   if(location.hash.includes('personal')) renderPersonal(); if(location.hash.includes('index')) renderIndex();
 };
 
